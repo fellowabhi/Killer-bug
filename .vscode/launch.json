@@ -16,6 +16,17 @@
             "program": "${workspaceFolder}/debug_practice.py",
             "console": "integratedTerminal",
             "justMyCode": true
+        },
+        {
+            "name": "Run Extension",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/vscode-debug-mcp"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/vscode-debug-mcp/dist/**/*.js"
+            ]
         }
     ]
 }
