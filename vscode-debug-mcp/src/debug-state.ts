@@ -34,7 +34,11 @@ export class DebugState {
             if (session) {
                 this.sessionId = session.id;
                 this.currentFile = session.configuration.program;
+                this.isPaused = false;
                 console.log(`Debug session started: ${this.sessionId}`);
+                
+                // Set up session-specific event tracking
+                this.trackSessionState(session);
             } else {
                 this.reset();
                 console.log('Debug session ended');
@@ -75,6 +79,72 @@ export class DebugState {
                 this.reset();
             }
         });
+    }
+
+    /**
+     * Track state changes for a specific debug session
+     */
+    private async trackSessionState(session: vscode.DebugSession) {
+        try {
+            // Request threads to check if execution has stopped
+            const checkState = async () => {
+                if (!this.isActive() || this.sessionId !== session.id) {
+                    return;
+                }
+
+                try {
+                    const threadsResponse = await session.customRequest('threads');
+                    if (threadsResponse && threadsResponse.threads) {
+                        for (const thread of threadsResponse.threads) {
+                            // Check if thread is stopped (paused)
+                            if (thread.stopped || thread.name?.includes('stopped')) {
+                                this.isPaused = true;
+                                
+                                // Get stack trace to update current position
+                                const stackResponse = await session.customRequest('stackTrace', {
+                                    threadId: thread.id,
+                                    startFrame: 0,
+                                    levels: 10
+                                });
+                                
+                                if (stackResponse && stackResponse.stackFrames && stackResponse.stackFrames.length > 0) {
+                                    const topFrame = stackResponse.stackFrames[0];
+                                    this.stackFrames = stackResponse.stackFrames;
+                                    this.currentLine = topFrame.line;
+                                    this.currentFunction = topFrame.name;
+                                    
+                                    if (topFrame.source && topFrame.source.path) {
+                                        this.currentFile = topFrame.source.path;
+                                    }
+                                    
+                                    console.log(`Debugger paused at ${this.currentFile}:${this.currentLine} in ${this.currentFunction}`);
+                                }
+                                return;
+                            }
+                        }
+                        
+                        // No stopped threads, execution is running
+                        this.isPaused = false;
+                    }
+                } catch (error) {
+                    // Session might not support these requests yet or is not ready
+                    // This is normal during startup
+                }
+            };
+
+            // Poll state periodically while session is active
+            const statePoller = setInterval(checkState, 300);
+            
+            // Clean up poller when session ends
+            const cleanup = vscode.debug.onDidTerminateDebugSession((endedSession) => {
+                if (endedSession.id === session.id) {
+                    clearInterval(statePoller);
+                    cleanup.dispose();
+                }
+            });
+        } catch (error) {
+            console.error('Error tracking session state:', error);
+        }
     }
 
     /**
