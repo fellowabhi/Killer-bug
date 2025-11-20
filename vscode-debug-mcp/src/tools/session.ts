@@ -75,8 +75,11 @@ async function debugStart(args: {
         const started = await vscode.debug.startDebugging(undefined, config);
         
         if (started) {
-            // Wait a bit for session to initialize
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Wait longer for session to initialize and stop at entry
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Refresh paused state after starting
+            await debugState.refreshPausedState();
             
             return {
                 success: true,
@@ -84,6 +87,8 @@ async function debugStart(args: {
                 file: file,
                 type: debugType,
                 status: 'started',
+                isPaused: debugState.isPaused,
+                currentLine: debugState.currentLine,
             };
         } else {
             return {
@@ -146,6 +151,9 @@ async function debugGetStatus(): Promise<any> {
             status: 'No active debug session',
         };
     }
+
+    // Refresh the paused state before returning status
+    await debugState.refreshPausedState();
 
     const session = debugState.getActiveSession();
     

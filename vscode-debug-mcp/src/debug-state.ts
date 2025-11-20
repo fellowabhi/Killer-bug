@@ -36,12 +36,47 @@ export class DebugState {
                 this.currentFile = session.configuration.program;
                 this.isPaused = false;
                 console.log(`Debug session started: ${this.sessionId}`);
-                
-                // Set up session-specific event tracking
-                this.trackSessionState(session);
             } else {
                 this.reset();
                 console.log('Debug session ended');
+            }
+        });
+
+        // Track when debugger stops (hits breakpoint, steps, etc.)
+        vscode.debug.onDidReceiveDebugSessionCustomEvent((event) => {
+            if (event.session.id !== this.sessionId) return;
+
+            console.log('Debug event received:', event.event, event.body);
+
+            // Handle stopped events (breakpoint hit, step complete, pause)
+            if (event.event === 'stopped') {
+                this.isPaused = true;
+                console.log('✅ Debugger STOPPED - isPaused set to TRUE');
+                
+                // Update current position from the stopped event
+                this.updateCurrentPosition(event.session);
+            }
+            
+            // Handle continued events
+            if (event.event === 'continued') {
+                this.isPaused = false;
+                console.log('▶️ Debugger CONTINUED - isPaused set to FALSE');
+            }
+        });
+
+        // Track active stack frame changes (when user selects different frame or execution stops)
+        // This is a more reliable indicator that debugger is paused
+        vscode.debug.onDidChangeActiveStackItem(async (stackItem) => {
+            if (stackItem) {
+                // When stack item changes, debugger is paused
+                this.isPaused = true;
+                console.log('📍 Active stack item changed - isPaused set to TRUE');
+                
+                // Update position when active debug stack item changes
+                const session = vscode.debug.activeDebugSession;
+                if (session) {
+                    await this.updateCurrentPosition(session);
+                }
             }
         });
 
@@ -82,68 +117,54 @@ export class DebugState {
     }
 
     /**
-     * Track state changes for a specific debug session
+     * Update current position from debug session (fetch stack trace via DAP)
      */
-    private async trackSessionState(session: vscode.DebugSession) {
+    private async updateCurrentPosition(session: vscode.DebugSession) {
         try {
-            // Request threads to check if execution has stopped
-            const checkState = async () => {
-                if (!this.isActive() || this.sessionId !== session.id) {
-                    return;
-                }
+            // Get threads
+            const threadsResponse = await session.customRequest('threads');
+            if (!threadsResponse || !threadsResponse.threads || threadsResponse.threads.length === 0) {
+                return;
+            }
 
-                try {
-                    const threadsResponse = await session.customRequest('threads');
-                    if (threadsResponse && threadsResponse.threads) {
-                        for (const thread of threadsResponse.threads) {
-                            // Check if thread is stopped (paused)
-                            if (thread.stopped || thread.name?.includes('stopped')) {
-                                this.isPaused = true;
-                                
-                                // Get stack trace to update current position
-                                const stackResponse = await session.customRequest('stackTrace', {
-                                    threadId: thread.id,
-                                    startFrame: 0,
-                                    levels: 10
-                                });
-                                
-                                if (stackResponse && stackResponse.stackFrames && stackResponse.stackFrames.length > 0) {
-                                    const topFrame = stackResponse.stackFrames[0];
-                                    this.stackFrames = stackResponse.stackFrames;
-                                    this.currentLine = topFrame.line;
-                                    this.currentFunction = topFrame.name;
-                                    
-                                    if (topFrame.source && topFrame.source.path) {
-                                        this.currentFile = topFrame.source.path;
-                                    }
-                                    
-                                    console.log(`Debugger paused at ${this.currentFile}:${this.currentLine} in ${this.currentFunction}`);
-                                }
-                                return;
-                            }
-                        }
-                        
-                        // No stopped threads, execution is running
-                        this.isPaused = false;
+            // Check if any thread is stopped - this indicates paused state
+            for (const thread of threadsResponse.threads) {
+                if (thread.stopped === true || thread.name?.toLowerCase().includes('paused')) {
+                    if (!this.isPaused) {
+                        this.isPaused = true;
+                        console.log('🔍 Detected paused state from thread status - isPaused set to TRUE');
                     }
-                } catch (error) {
-                    // Session might not support these requests yet or is not ready
-                    // This is normal during startup
                 }
-            };
+            }
 
-            // Poll state periodically while session is active
-            const statePoller = setInterval(checkState, 300);
-            
-            // Clean up poller when session ends
-            const cleanup = vscode.debug.onDidTerminateDebugSession((endedSession) => {
-                if (endedSession.id === session.id) {
-                    clearInterval(statePoller);
-                    cleanup.dispose();
-                }
+            // Get stack trace for first thread
+            const threadId = threadsResponse.threads[0].id;
+            const stackResponse = await session.customRequest('stackTrace', {
+                threadId: threadId,
+                startFrame: 0,
+                levels: 20
             });
+
+            if (stackResponse && stackResponse.stackFrames && stackResponse.stackFrames.length > 0) {
+                const topFrame = stackResponse.stackFrames[0];
+                this.stackFrames = stackResponse.stackFrames;
+                this.currentLine = topFrame.line;
+                this.currentFunction = topFrame.name;
+
+                if (topFrame.source && topFrame.source.path) {
+                    this.currentFile = topFrame.source.path;
+                }
+
+                // If we successfully got stack frames, debugger must be paused
+                if (!this.isPaused) {
+                    this.isPaused = true;
+                    console.log('🔍 Detected paused state from stack trace - isPaused set to TRUE');
+                }
+
+                console.log(`Position updated: ${this.currentFunction} at ${this.currentFile}:${this.currentLine} (isPaused=${this.isPaused})`);
+            }
         } catch (error) {
-            console.error('Error tracking session state:', error);
+            console.error('Error updating current position:', error);
         }
     }
 
@@ -157,6 +178,64 @@ export class DebugState {
         this.currentFunction = null;
         this.isPaused = false;
         this.stackFrames = [];
+    }
+
+    /**
+     * Manually refresh the paused state by checking thread status
+     * Call this before operations that need accurate isPaused state
+     */
+    async refreshPausedState(): Promise<void> {
+        const session = this.getActiveSession();
+        if (!session) {
+            this.isPaused = false;
+            return;
+        }
+
+        try {
+            const threadsResponse = await session.customRequest('threads');
+            console.log('🔍 Threads response:', JSON.stringify(threadsResponse));
+            
+            if (threadsResponse && threadsResponse.threads && threadsResponse.threads.length > 0) {
+                // Try to get stack trace - if successful, we MUST be paused
+                try {
+                    const threadId = threadsResponse.threads[0].id;
+                    const stackResponse = await session.customRequest('stackTrace', {
+                        threadId: threadId,
+                        startFrame: 0,
+                        levels: 1
+                    });
+                    
+                    console.log('🔍 Stack trace response:', JSON.stringify(stackResponse));
+                    
+                    if (stackResponse && stackResponse.stackFrames && stackResponse.stackFrames.length > 0) {
+                        // Successfully got stack frames = debugger is paused!
+                        this.isPaused = true;
+                        console.log('🔄 Refreshed state: isPaused = TRUE (got stack frames)');
+                        // Update full position
+                        await this.updateCurrentPosition(session);
+                        return;
+                    }
+                } catch (stackError) {
+                    console.log('⚠️ Could not get stack trace (probably running):', stackError);
+                }
+                
+                // Fallback: Check thread.stopped property
+                const hasStoppedThread = threadsResponse.threads.some((thread: any) => 
+                    thread.stopped === true || thread.name?.toLowerCase().includes('paused') || thread.name?.toLowerCase().includes('stopped')
+                );
+                
+                if (hasStoppedThread) {
+                    this.isPaused = true;
+                    console.log('🔄 Refreshed state: isPaused = TRUE (thread marked stopped)');
+                    await this.updateCurrentPosition(session);
+                } else {
+                    this.isPaused = false;
+                    console.log('🔄 Refreshed state: isPaused = FALSE (running)');
+                }
+            }
+        } catch (error) {
+            console.error('Error refreshing paused state:', error);
+        }
     }
 
     /**

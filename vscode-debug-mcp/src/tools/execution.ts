@@ -47,8 +47,11 @@ async function debugContinue(): Promise<any> {
         // Execute continue command
         await vscode.commands.executeCommand('workbench.action.debug.continue');
         
-        // Wait for state to update
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Wait longer for debugger to potentially hit next breakpoint
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Refresh paused state
+        await debugState.refreshPausedState();
 
         return {
             success: true,
@@ -91,8 +94,11 @@ async function debugStepOver(): Promise<any> {
         // Execute step over command
         await vscode.commands.executeCommand('workbench.action.debug.stepOver');
         
-        // Wait for step to complete
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Wait longer for step to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Refresh paused state
+        await debugState.refreshPausedState();
 
         return {
             success: true,
@@ -101,6 +107,7 @@ async function debugStepOver(): Promise<any> {
             currentFile: debugState.currentFile,
             currentLine: debugState.currentLine,
             currentFunction: debugState.currentFunction,
+            isPaused: debugState.isPaused,
         };
     } catch (error: any) {
         return {
@@ -136,8 +143,11 @@ async function debugStepInto(): Promise<any> {
         // Execute step into command
         await vscode.commands.executeCommand('workbench.action.debug.stepInto');
         
-        // Wait for step to complete
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Wait longer for step to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Refresh paused state
+        await debugState.refreshPausedState();
 
         return {
             success: true,
@@ -147,6 +157,7 @@ async function debugStepInto(): Promise<any> {
             currentFile: debugState.currentFile,
             currentLine: debugState.currentLine,
             currentFunction: debugState.currentFunction,
+            isPaused: debugState.isPaused,
         };
     } catch (error: any) {
         return {
@@ -182,8 +193,11 @@ async function debugStepOut(): Promise<any> {
         // Execute step out command
         await vscode.commands.executeCommand('workbench.action.debug.stepOut');
         
-        // Wait for step to complete
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Wait longer for step to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Refresh paused state
+        await debugState.refreshPausedState();
 
         return {
             success: true,
@@ -193,6 +207,7 @@ async function debugStepOut(): Promise<any> {
             currentFile: debugState.currentFile,
             currentLine: debugState.currentLine,
             currentFunction: debugState.currentFunction,
+            isPaused: debugState.isPaused,
         };
     } catch (error: any) {
         return {
@@ -232,8 +247,11 @@ async function debugPause(): Promise<any> {
         // Execute pause command
         await vscode.commands.executeCommand('workbench.action.debug.pause');
         
-        // Wait for pause to complete
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Wait longer for pause to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Refresh paused state
+        await debugState.refreshPausedState();
 
         return {
             success: true,

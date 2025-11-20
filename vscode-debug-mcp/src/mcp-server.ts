@@ -1,21 +1,18 @@
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import {
-    CallToolRequestSchema,
-    ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
 import express from 'express';
-import type { Express } from 'express';
+import type { Express, Request, Response } from 'express';
+import { handleSessionTool } from './tools/session';
+import { handleBreakpointTool } from './tools/breakpoints';
+import { handleExecutionTool } from './tools/execution';
+import { handleInspectionTool } from './tools/inspection';
 
-let serverInstance: Server | null = null;
 let httpServer: any = null;
 const PORT = 3100;
 
 /**
- * Start the MCP server with HTTP/SSE transport
+ * Start the MCP server with HTTP JSON-RPC transport
  */
 export function startMCPServer() {
-    if (serverInstance) {
+    if (httpServer) {
         console.log('MCP server already running on port', PORT);
         return;
     }
@@ -24,246 +21,251 @@ export function startMCPServer() {
     const app: Express = express();
     
     app.use(express.json());
-
-    // Create MCP server
-    const server = new Server(
-        {
-            name: 'vscode-debug-mcp',
-            version: '0.1.0',
-        },
-        {
-            capabilities: {
-                tools: {},
-            },
-        }
-    );
-
-    // Register tool list handler
-    server.setRequestHandler(ListToolsRequestSchema, async () => {
-        const tools = [];
-        
-        // Session tools
-        tools.push({
-            name: 'debug_start',
-            description: 'Start a debug session for a file',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    file: {
-                        type: 'string',
-                        description: 'Absolute path to the file to debug',
-                    },
-                    type: {
-                        type: 'string',
-                        description: 'Debug type (e.g., "python", "node"). Auto-detected if not specified.',
-                    },
-                    stopOnEntry: {
-                        type: 'boolean',
-                        description: 'Stop at the first line of the program',
-                        default: false,
-                    },
-                },
-                required: ['file'],
-            },
-        });
-
-        tools.push({
-            name: 'debug_stop',
-            description: 'Stop the current debug session',
-            inputSchema: {
-                type: 'object',
-                properties: {},
-            },
-        });
-
-        tools.push({
-            name: 'debug_getStatus',
-            description: 'Get current debug session status',
-            inputSchema: {
-                type: 'object',
-                properties: {},
-            },
-        });
-
-        // Breakpoint tools
-        tools.push({
-            name: 'debug_setBreakpoint',
-            description: 'Set a breakpoint at a specific line in a file',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    file: {
-                        type: 'string',
-                        description: 'Absolute path to the file',
-                    },
-                    line: {
-                        type: 'number',
-                        description: 'Line number (1-based)',
-                    },
-                    condition: {
-                        type: 'string',
-                        description: 'Optional condition expression (e.g., "x > 10")',
-                    },
-                },
-                required: ['file', 'line'],
-            },
-        });
-
-        tools.push({
-            name: 'debug_removeBreakpoint',
-            description: 'Remove a breakpoint from a specific line',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    file: {
-                        type: 'string',
-                        description: 'Absolute path to the file',
-                    },
-                    line: {
-                        type: 'number',
-                        description: 'Line number (1-based)',
-                    },
-                },
-                required: ['file', 'line'],
-            },
-        });
-
-        tools.push({
-            name: 'debug_listBreakpoints',
-            description: 'List all breakpoints',
-            inputSchema: {
-                type: 'object',
-                properties: {},
-            },
-        });
-
-        // Execution control tools
-        tools.push({
-            name: 'debug_continue',
-            description: 'Continue execution until next breakpoint',
-            inputSchema: {
-                type: 'object',
-                properties: {},
-            },
-        });
-
-        tools.push({
-            name: 'debug_stepOver',
-            description: 'Step over the current line (execute and move to next line)',
-            inputSchema: {
-                type: 'object',
-                properties: {},
-            },
-        });
-
-        tools.push({
-            name: 'debug_stepInto',
-            description: 'Step into function call on current line',
-            inputSchema: {
-                type: 'object',
-                properties: {},
-            },
-        });
-
-        tools.push({
-            name: 'debug_stepOut',
-            description: 'Step out of current function',
-            inputSchema: {
-                type: 'object',
-                properties: {},
-            },
-        });
-
-        tools.push({
-            name: 'debug_pause',
-            description: 'Pause execution',
-            inputSchema: {
-                type: 'object',
-                properties: {},
-            },
-        });
-
-        return { tools };
+    app.use((req, res, next) => {
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Content-Type');
+        next();
     });
 
-    // Register tool call handler
-    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    // Main MCP endpoint - handles all JSON-RPC requests
+    app.post('/mcp', async (req: Request, res: Response) => {
         try {
-            const { name, arguments: args } = request.params;
-
-            let result: any;
-
-            // Route to appropriate tool handler
-            if (name.startsWith('debug_') && ['debug_start', 'debug_stop', 'debug_getStatus'].includes(name)) {
-                const sessionTools = await import('./tools/session');
-                result = await sessionTools.handleSessionTool(name, args || {});
-            } else if (name.startsWith('debug_') && ['debug_setBreakpoint', 'debug_removeBreakpoint', 'debug_listBreakpoints'].includes(name)) {
-                const breakpointTools = await import('./tools/breakpoints');
-                result = await breakpointTools.handleBreakpointTool(name, args || {});
-            } else if (name.startsWith('debug_') && ['debug_continue', 'debug_stepOver', 'debug_stepInto', 'debug_stepOut', 'debug_pause'].includes(name)) {
-                const executionTools = await import('./tools/execution');
-                result = await executionTools.handleExecutionTool(name, args || {});
+            const request = req.body;
+            
+            // Handle different MCP methods
+            if (request.method === 'initialize') {
+                res.json({
+                    jsonrpc: '2.0',
+                    id: request.id,
+                    result: {
+                        protocolVersion: '2024-11-05',
+                        capabilities: {
+                            tools: {}
+                        },
+                        serverInfo: {
+                            name: 'vscode-debug-mcp',
+                            version: '0.1.0'
+                        }
+                    }
+                });
+            } else if (request.method === 'notifications/initialized') {
+                // Acknowledge the initialized notification
+                res.status(200).json({
+                    jsonrpc: '2.0',
+                    result: {}
+                });
+            } else if (request.method === 'tools/list') {
+                const tools = getToolsList();
+                res.json({
+                    jsonrpc: '2.0',
+                    id: request.id,
+                    result: { tools }
+                });
+            } else if (request.method === 'tools/call') {
+                const result = await handleToolCall(request.params);
+                res.json({
+                    jsonrpc: '2.0',
+                    id: request.id,
+                    result
+                });
             } else {
-                throw new Error(`Unknown tool: ${name}`);
+                res.status(400).json({
+                    jsonrpc: '2.0',
+                    id: request.id,
+                    error: {
+                        code: -32601,
+                        message: `Method not found: ${request.method}`
+                    }
+                });
             }
-
-            return {
-                content: [
-                    {
-                        type: 'text',
-                        text: JSON.stringify(result, null, 2),
-                    },
-                ],
-            };
         } catch (error: any) {
-            return {
-                content: [
-                    {
-                        type: 'text',
-                        text: `Error: ${error.message}`,
-                    },
-                ],
-                isError: true,
-            };
+            res.status(500).json({
+                jsonrpc: '2.0',
+                id: req.body.id,
+                error: {
+                    code: -32603,
+                    message: error.message
+                }
+            });
         }
-    });
-
-    // Set up SSE endpoint
-    app.get('/sse', async (req, res) => {
-        console.log('SSE client connected');
-        
-        const transport = new SSEServerTransport('/message', res);
-        await server.connect(transport);
-        
-        res.on('close', () => {
-            console.log('SSE client disconnected');
-        });
-    });
-
-    // Set up message endpoint
-    app.post('/message', async (req, res) => {
-        // SSE transport handles this
-        res.status(200).end();
     });
 
     // Health check endpoint
-    app.get('/health', (req, res) => {
+    app.get('/health', (req: Request, res: Response) => {
         res.json({ 
             status: 'ok', 
             server: 'vscode-debug-mcp',
             version: '0.1.0',
-            tools: 11
+            tools: 14,
+            endpoint: '/mcp'
         });
     });
 
     // Start HTTP server
     httpServer = app.listen(PORT, () => {
         console.log(`MCP server listening on http://localhost:${PORT}`);
-        console.log(`SSE endpoint: http://localhost:${PORT}/sse`);
-        console.log(`Health check: http://localhost:${PORT}/health`);
+        console.log(`MCP endpoint: POST http://localhost:${PORT}/mcp`);
+        console.log(`Health check: GET http://localhost:${PORT}/health`);
     });
+}
 
-    serverInstance = server;
+/**
+ * Get list of all available tools
+ */
+function getToolsList() {
+    return [
+        {
+            name: 'debug_start',
+            description: 'Start a debug session for a file',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    file: { type: 'string', description: 'Absolute path to the file to debug' },
+                    type: { type: 'string', description: 'Debug type (e.g., "python", "node"). Auto-detected if not specified.' },
+                    stopOnEntry: { type: 'boolean', description: 'Stop at the first line of the program' }
+                },
+                required: ['file']
+            }
+        },
+        {
+            name: 'debug_stop',
+            description: 'Stop the current debug session',
+            inputSchema: { type: 'object', properties: {} }
+        },
+        {
+            name: 'debug_getStatus',
+            description: 'Get current debug session status',
+            inputSchema: { type: 'object', properties: {} }
+        },
+        {
+            name: 'debug_setBreakpoint',
+            description: 'Set a breakpoint at a specific line in a file',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    file: { type: 'string', description: 'Absolute path to the file' },
+                    line: { type: 'number', description: 'Line number (1-based)' },
+                    condition: { type: 'string', description: 'Optional condition expression' }
+                },
+                required: ['file', 'line']
+            }
+        },
+        {
+            name: 'debug_removeBreakpoint',
+            description: 'Remove a breakpoint from a specific line',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    file: { type: 'string', description: 'Absolute path to the file' },
+                    line: { type: 'number', description: 'Line number (1-based)' }
+                },
+                required: ['file', 'line']
+            }
+        },
+        {
+            name: 'debug_listBreakpoints',
+            description: 'List all breakpoints',
+            inputSchema: { type: 'object', properties: {} }
+        },
+        {
+            name: 'debug_continue',
+            description: 'Continue execution until next breakpoint',
+            inputSchema: { type: 'object', properties: {} }
+        },
+        {
+            name: 'debug_stepOver',
+            description: 'Step over the current line',
+            inputSchema: { type: 'object', properties: {} }
+        },
+        {
+            name: 'debug_stepInto',
+            description: 'Step into function call on current line',
+            inputSchema: { type: 'object', properties: {} }
+        },
+        {
+            name: 'debug_stepOut',
+            description: 'Step out of current function',
+            inputSchema: { type: 'object', properties: {} }
+        },
+        {
+            name: 'debug_pause',
+            description: 'Pause execution',
+            inputSchema: { type: 'object', properties: {} }
+        },
+        {
+            name: 'debug_getStackTrace',
+            description: 'Get the current call stack with function names, file paths, and line numbers',
+            inputSchema: { type: 'object', properties: {} }
+        },
+        {
+            name: 'debug_getVariables',
+            description: 'Get variables in the current scope or specified frame',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    frameId: { type: 'number', description: 'Stack frame ID (optional, defaults to top frame)' },
+                    scope: { type: 'string', description: 'Scope filter: "local", "global", etc. (optional)' }
+                }
+            }
+        },
+        {
+            name: 'debug_evaluate',
+            description: 'Evaluate an expression in the current debug context',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    expression: { type: 'string', description: 'Expression to evaluate' },
+                    frameId: { type: 'number', description: 'Stack frame ID (optional, defaults to top frame)' },
+                    context: { type: 'string', description: 'Evaluation context: "watch", "repl", "hover" (optional)' }
+                },
+                required: ['expression']
+            }
+        }
+    ];
+}
+
+/**
+ * Handle tool call requests
+ */
+async function handleToolCall(params: any) {
+    const { name, arguments: args } = params;
+
+    try {
+        let result: any;
+
+        // Route to appropriate tool handler
+        if (name.startsWith('debug_') && ['debug_start', 'debug_stop', 'debug_getStatus'].includes(name)) {
+            result = await handleSessionTool(name, args || {});
+        } else if (name.startsWith('debug_') && ['debug_setBreakpoint', 'debug_removeBreakpoint', 'debug_listBreakpoints'].includes(name)) {
+            result = await handleBreakpointTool(name, args || {});
+        } else if (name.startsWith('debug_') && ['debug_continue', 'debug_stepOver', 'debug_stepInto', 'debug_stepOut', 'debug_pause'].includes(name)) {
+            result = await handleExecutionTool(name, args || {});
+        } else if (name.startsWith('debug_') && ['debug_getStackTrace', 'debug_getVariables', 'debug_evaluate'].includes(name)) {
+            result = await handleInspectionTool(name, args || {});
+        } else {
+            throw new Error(`Unknown tool: ${name}`);
+        }
+
+        return {
+            content: [
+                {
+                    type: 'text',
+                    text: JSON.stringify(result, null, 2)
+                }
+            ]
+        };
+    } catch (error: any) {
+        return {
+            content: [
+                {
+                    type: 'text',
+                    text: `Error: ${error.message}`
+                }
+            ],
+            isError: true
+        };
+    }
 }
 
 /**
@@ -273,12 +275,6 @@ export function stopMCPServer() {
     if (httpServer) {
         httpServer.close();
         httpServer = null;
-        console.log('HTTP server stopped');
-    }
-    
-    if (serverInstance) {
-        serverInstance.close();
-        serverInstance = null;
         console.log('MCP server stopped');
     }
 }
