@@ -1,0 +1,10 @@
+{
+	"servers": {
+		"vscode-debugger": {
+			"type": "stdio",
+			"command": "node",
+			"args": ["/home/yatnam/.config/Code/User/globalStorage/jasonmcghee.claude-debugs-for-you/mcp-debug.js"]
+		}
+	},
+	"inputs": []
+}
