@@ -12,17 +12,10 @@
     "Other"
   ],
   "activationEvents": [
-    "onDebug"
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "vscode-debug-mcp.start",
-        "title": "Start AI Debug MCP Server"
-      }
-    ]
-  },
+  "contributes": {},
   "scripts": {
     "vscode:prepublish": "npm run build",
     "build": "node esbuild.js",
