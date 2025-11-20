@@ -1,13 +1,15 @@
 # Testing the AI Debug MCP Server
 
-## Architecture (Simplified)
+## Architecture (HTTP/SSE)
 
 ```
 VS Code Extension
   ↓ (auto-starts on activation)
-MCP Server (stdio) with VS Code Debug APIs
+HTTP Server on localhost:3100
+  ↓ (SSE transport)
+MCP Server with VS Code Debug APIs
   ↓
-AI Client connects and controls debugging
+AI Client connects via HTTP
 ```
 
 ## How to Test
@@ -22,21 +24,40 @@ AI Client connects and controls debugging
 Check the Debug Console (original window) for:
 ```
 AI Debug MCP Server extension is activating...
-MCP server started automatically
+MCP server listening on http://localhost:3100
+SSE endpoint: http://localhost:3100/sse
+Health check: http://localhost:3100/health
 AI Debug MCP Server extension activated
 ```
 
-### 3. Connect MCP Client (in the F5 window)
+### 3. Test Health Endpoint (Optional)
 
-**Option A: Via Built-in AI (Claude/Copilot)**
+In a terminal:
+```bash
+curl http://localhost:3100/health
+```
 
-The AI should automatically detect the MCP server since it's running in the extension host.
+Should return:
+```json
+{"status":"ok","server":"vscode-debug-mcp","version":"0.1.0","tools":11}
+```
 
-**Option B: Test Manually**
+### 4. Configure MCP Client (in the F5 window)
 
-No MCP JSON needed! The extension exposes the MCP server automatically.
+Create/update `.vscode/mcp.json`:
 
-### 4. Test Prompt for AI
+```json
+{
+  "servers": {
+    "ai-debugger": {
+      "type": "sse",
+      "url": "http://localhost:3100/sse"
+    }
+  }
+}
+```
+
+### 5. Test Prompt for AI
 
 Give this prompt to the AI in the F5 window:
 

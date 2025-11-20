@@ -1,20 +1,29 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import {
     CallToolRequestSchema,
     ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import express from 'express';
+import type { Express } from 'express';
 
 let serverInstance: Server | null = null;
+let httpServer: any = null;
+const PORT = 3100;
 
 /**
- * Start the MCP server with stdio transport
+ * Start the MCP server with HTTP/SSE transport
  */
 export function startMCPServer() {
     if (serverInstance) {
-        console.log('MCP server already running');
+        console.log('MCP server already running on port', PORT);
         return;
     }
+
+    // Create Express app
+    const app: Express = express();
+    
+    app.use(express.json());
 
     // Create MCP server
     const server = new Server(
@@ -219,18 +228,54 @@ export function startMCPServer() {
         }
     });
 
-    // Connect to stdio transport
-    const transport = new StdioServerTransport();
-    server.connect(transport);
+    // Set up SSE endpoint
+    app.get('/sse', async (req, res) => {
+        console.log('SSE client connected');
+        
+        const transport = new SSEServerTransport('/message', res);
+        await server.connect(transport);
+        
+        res.on('close', () => {
+            console.log('SSE client disconnected');
+        });
+    });
+
+    // Set up message endpoint
+    app.post('/message', async (req, res) => {
+        // SSE transport handles this
+        res.status(200).end();
+    });
+
+    // Health check endpoint
+    app.get('/health', (req, res) => {
+        res.json({ 
+            status: 'ok', 
+            server: 'vscode-debug-mcp',
+            version: '0.1.0',
+            tools: 11
+        });
+    });
+
+    // Start HTTP server
+    httpServer = app.listen(PORT, () => {
+        console.log(`MCP server listening on http://localhost:${PORT}`);
+        console.log(`SSE endpoint: http://localhost:${PORT}/sse`);
+        console.log(`Health check: http://localhost:${PORT}/health`);
+    });
 
     serverInstance = server;
-    console.log('MCP server started on stdio');
 }
 
 /**
  * Stop the MCP server
  */
 export function stopMCPServer() {
+    if (httpServer) {
+        httpServer.close();
+        httpServer = null;
+        console.log('HTTP server stopped');
+    }
+    
     if (serverInstance) {
         serverInstance.close();
         serverInstance = null;
