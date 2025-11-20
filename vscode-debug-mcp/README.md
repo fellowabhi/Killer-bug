@@ -2,31 +2,48 @@
 
 AI-powered debugging for VS Code via Model Context Protocol.
 
-Provides AI assistants with complete control over VS Code's debugger through 14 specialized tools for session management, breakpoints, execution control, and code inspection.
+Provides AI assistants with complete control over VS Code's debugger through 17 specialized tools for session management, breakpoints, execution control, code inspection, and **remote debugging**.
 
 ## Features
 
-### Session Management
+### Session Management (6 tools)
 - **debug_start** - Start debugging any file (auto-detects language)
 - **debug_stop** - Stop debug session
 - **debug_getStatus** - Get current execution state
+- **debug_listConfigs** - List debug configurations from launch.json ⭐ NEW
+- **debug_startWithConfig** - Use existing launch.json configurations ⭐ NEW
+- **debug_attach** - Attach to running process (FastAPI, Node.js, etc.) ⭐ NEW
 
-### Breakpoint Management
+### Breakpoint Management (3 tools)
 - **debug_setBreakpoint** - Set breakpoints (with optional conditions)
 - **debug_removeBreakpoint** - Remove breakpoints
 - **debug_listBreakpoints** - List all active breakpoints
 
-### Execution Control
+### Execution Control (5 tools)
 - **debug_continue** - Continue to next breakpoint
 - **debug_stepOver** - Step over current line
 - **debug_stepInto** - Step into function call
 - **debug_stepOut** - Step out of current function
 - **debug_pause** - Pause execution
 
-### Code Inspection
+### Code Inspection (3 tools)
 - **debug_getStackTrace** - Get call stack with function names and line numbers
 - **debug_getVariables** - Inspect variables in current scope
 - **debug_evaluate** - Evaluate expressions in debug context
+
+## Remote Debugging 🆕
+
+Version 0.2.0 adds support for attaching to running processes and using your existing launch.json configurations.
+
+**Example: FastAPI Debugging**
+```
+1. AI starts: python -m debugpy --listen 5678 main.py
+2. AI attaches: debug_attach({ type: "debugpy", port: 5678 })
+3. AI sets breakpoints and calls your API
+4. AI inspects variables and finds bugs automatically!
+```
+
+See [REMOTE_DEBUGGING.md](REMOTE_DEBUGGING.md) for complete guide with examples.
 
 ## Installation
 
@@ -77,7 +94,23 @@ Example prompts:
 "Step through the calculate_total function and show me the variables"
 "What's the current call stack?"
 "Evaluate the expression user.name in the current context"
+"List my debug configurations"
+"Attach to my FastAPI server on port 5678"
+"Start debugging using my 'FastAPI Attach' configuration"
 ```
+
+## Use Cases
+
+### Traditional Debugging
+- Debug any Python/JavaScript/TypeScript file
+- Set breakpoints and step through code
+- Inspect variables and evaluate expressions
+
+### Remote Debugging (NEW!)
+- **FastAPI/Flask**: Attach to running web server, debug API endpoints
+- **Node.js**: Attach to running Node apps with --inspect
+- **Containers**: Use existing launch.json configs with path mappings
+- **Team Configs**: Leverage shared launch.json configurations
 
 ## Supported Languages
 

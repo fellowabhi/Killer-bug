@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.2.0] - 2024-11-20
+
+### Added - Remote Debugging Support
+
+#### New Tools (3)
+- `debug_listConfigs` - List all debug configurations from workspace's launch.json
+- `debug_startWithConfig` - Start debugging using a named configuration from launch.json
+- `debug_attach` - Attach to running process for remote debugging (FastAPI, Node.js, etc.)
+
+#### Remote Debugging Capabilities
+- Attach to running debugpy/Python processes
+- Attach to running Node.js processes
+- Use existing launch.json configurations
+- Support for pathMappings (container/remote debugging)
+- Dynamic port-based attachment
+
+#### Use Cases Enabled
+- **FastAPI Debugging**: AI can attach to running FastAPI server, set breakpoints, inspect requests
+- **Node.js Debugging**: Attach to running Node.js apps with --inspect
+- **Container Debugging**: Path mappings for Docker/remote environments
+- **Config Reuse**: Leverage team's shared launch.json configurations
+
+#### Documentation
+- Complete REMOTE_DEBUGGING.md guide
+- FastAPI workflow examples
+- Node.js workflow examples
+- launch.json configuration examples
+
+### Tool Count
+- Increased from 14 tools to **17 tools**
+- Session Management: 3 → 6 tools
+
 ## [0.1.0] - 2024-11-20
 
 ### Added - Complete Feature Set

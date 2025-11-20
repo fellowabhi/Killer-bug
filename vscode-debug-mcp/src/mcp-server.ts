@@ -96,8 +96,8 @@ export function startMCPServer() {
         res.json({ 
             status: 'ok', 
             server: 'vscode-debug-mcp',
-            version: '0.1.0',
-            tools: 14,
+            version: '0.2.0',
+            tools: 17,
             endpoint: '/mcp'
         });
     });
@@ -137,6 +137,38 @@ function getToolsList() {
             name: 'debug_getStatus',
             description: 'Get current debug session status',
             inputSchema: { type: 'object', properties: {} }
+        },
+        {
+            name: 'debug_listConfigs',
+            description: 'List all debug configurations from launch.json in the workspace',
+            inputSchema: { type: 'object', properties: {} }
+        },
+        {
+            name: 'debug_startWithConfig',
+            description: 'Start debugging using a named configuration from launch.json',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    configName: { type: 'string', description: 'Name of the debug configuration from launch.json' },
+                    folder: { type: 'string', description: 'Workspace folder name (optional, uses first if not specified)' }
+                },
+                required: ['configName']
+            }
+        },
+        {
+            name: 'debug_attach',
+            description: 'Attach to a running process for remote debugging (e.g., FastAPI with debugpy listening on a port)',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    type: { type: 'string', description: 'Debugger type: debugpy, python, node, pwa-node (default: debugpy)' },
+                    host: { type: 'string', description: 'Host to connect to (default: localhost)' },
+                    port: { type: 'number', description: 'Port number the debugger is listening on' },
+                    pathMappings: { type: 'object', description: 'Path mappings for remote/container debugging (optional)' },
+                    name: { type: 'string', description: 'Custom name for the debug session (optional)' }
+                },
+                required: ['port']
+            }
         },
         {
             name: 'debug_setBreakpoint',
