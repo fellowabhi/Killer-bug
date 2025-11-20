@@ -267,7 +267,7 @@ async function handleToolCall(params: any) {
         let result: any;
 
         // Route to appropriate tool handler
-        if (name.startsWith('debug_') && ['debug_start', 'debug_stop', 'debug_getStatus'].includes(name)) {
+        if (name.startsWith('debug_') && ['debug_start', 'debug_stop', 'debug_getStatus', 'debug_listConfigs', 'debug_startWithConfig', 'debug_attach'].includes(name)) {
             result = await handleSessionTool(name, args || {});
         } else if (name.startsWith('debug_') && ['debug_setBreakpoint', 'debug_removeBreakpoint', 'debug_listBreakpoints'].includes(name)) {
             result = await handleBreakpointTool(name, args || {});
