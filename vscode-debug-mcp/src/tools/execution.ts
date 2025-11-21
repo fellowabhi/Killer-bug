@@ -40,7 +40,19 @@ async function debugContinue(): Promise<any> {
         };
     }
 
+    // CRITICAL: Check if debugger is paused before attempting continue
+    if (!debugState.isPaused) {
+        return {
+            success: false,
+            error: 'Cannot continue: debugger is not paused. Wait for a breakpoint to be hit first.',
+            isPaused: false,
+            hint: 'Set a breakpoint and trigger the code path, or use debug_pause to pause execution.'
+        };
+    }
+
     try {
+        console.log('[DEBUG] Executing continue command');
+        
         // Store pre-continue state
         const wasPaused = debugState.isPaused;
         
@@ -88,7 +100,19 @@ async function debugStepOver(): Promise<any> {
         };
     }
 
+    // CRITICAL: Check if debugger is paused before attempting step
+    if (!debugState.isPaused) {
+        return {
+            success: false,
+            error: 'Cannot step over: debugger is not paused. Wait for a breakpoint to be hit first.',
+            isPaused: false,
+            hint: 'Set a breakpoint and trigger the code path, or use debug_pause to pause execution.'
+        };
+    }
+
     try {
+        console.log('[DEBUG] Executing step over command');
+        
         const prevLine = debugState.currentLine;
         
         // Execute step over command
@@ -136,7 +160,19 @@ async function debugStepInto(): Promise<any> {
         };
     }
 
+    // CRITICAL: Check if debugger is paused before attempting step
+    if (!debugState.isPaused) {
+        return {
+            success: false,
+            error: 'Cannot step into: debugger is not paused. Wait for a breakpoint to be hit first.',
+            isPaused: false,
+            hint: 'Set a breakpoint and trigger the code path, or use debug_pause to pause execution.'
+        };
+    }
+
     try {
+        console.log('[DEBUG] Executing step into command');
+        
         const prevLine = debugState.currentLine;
         const prevFile = debugState.currentFile;
         
@@ -186,7 +222,18 @@ async function debugStepOut(): Promise<any> {
         };
     }
 
+    // CRITICAL: Check if debugger is paused before attempting step
+    if (!debugState.isPaused) {
+        return {
+            success: false,
+            error: 'Cannot step out: debugger is not paused. Wait for a breakpoint to be hit first.',
+            isPaused: false,
+            hint: 'Set a breakpoint and trigger the code path, or use debug_pause to pause execution.'
+        };
+    }
+
     try {
+        console.log('[DEBUG] Executing step out command');
         const prevLine = debugState.currentLine;
         const prevFunction = debugState.currentFunction;
         
@@ -240,10 +287,14 @@ async function debugPause(): Promise<any> {
         return {
             success: false,
             error: 'Debug session is already paused',
+            isPaused: true,
+            hint: 'Use debug_continue, debug_stepOver, debug_stepInto, or debug_stepOut to resume execution.'
         };
     }
 
     try {
+        console.log('[DEBUG] Executing pause command');
+        
         // Execute pause command
         await vscode.commands.executeCommand('workbench.action.debug.pause');
         

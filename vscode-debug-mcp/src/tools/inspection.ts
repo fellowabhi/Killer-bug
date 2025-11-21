@@ -42,15 +42,22 @@ export async function debugGetStackTrace(): Promise<any> {
 
         // Fallback: fetch fresh stack trace via DAP
         try {
-            const threadsResponse = await session.customRequest('threads');
-            if (!threadsResponse || !threadsResponse.threads || threadsResponse.threads.length === 0) {
-                return {
-                    success: false,
-                    error: 'No threads available in debug session.'
-                };
+            // Use stored threadId if available
+            let threadId = debugState.getPausedThreadId();
+            
+            if (!threadId) {
+                // Fallback to querying threads
+                const threadsResponse = await session.customRequest('threads');
+                if (!threadsResponse || !threadsResponse.threads || threadsResponse.threads.length === 0) {
+                    return {
+                        success: false,
+                        error: 'No threads available in debug session.'
+                    };
+                }
+                threadId = threadsResponse.threads[0].id;
             }
-
-            const threadId = threadsResponse.threads[0].id;
+            
+            console.log(`[DEBUG] Fetching stack trace for thread ${threadId}`);
             const stackResponse = await session.customRequest('stackTrace', {
                 threadId: threadId,
                 startFrame: 0,
@@ -113,31 +120,39 @@ export async function debugGetVariables(frameId?: number, scope?: string): Promi
             };
         }
 
-        // Get threads and stack trace
-        const threadsResponse = await session.customRequest('threads');
-        if (!threadsResponse || !threadsResponse.threads || threadsResponse.threads.length === 0) {
-            return {
-                success: false,
-                error: 'No threads available in debug session.'
-            };
+        // Use stored threadId and frameId if available
+        let threadId = debugState.getPausedThreadId();
+        let targetFrameId = frameId !== undefined ? frameId : debugState.getPausedFrameId();
+        
+        // Fallback: query threads and stack trace
+        if (!threadId || !targetFrameId) {
+            console.log(`[DEBUG] No stored threadId/frameId, querying DAP`);
+            const threadsResponse = await session.customRequest('threads');
+            if (!threadsResponse || !threadsResponse.threads || threadsResponse.threads.length === 0) {
+                return {
+                    success: false,
+                    error: 'No threads available in debug session.'
+                };
+            }
+
+            threadId = threadsResponse.threads[0].id;
+            const stackResponse = await session.customRequest('stackTrace', {
+                threadId: threadId,
+                startFrame: 0,
+                levels: 20
+            });
+
+            if (!stackResponse || !stackResponse.stackFrames || stackResponse.stackFrames.length === 0) {
+                return {
+                    success: false,
+                    error: 'No stack frames available.'
+                };
+            }
+
+            targetFrameId = stackResponse.stackFrames[0].id;
         }
-
-        const threadId = threadsResponse.threads[0].id;
-        const stackResponse = await session.customRequest('stackTrace', {
-            threadId: threadId,
-            startFrame: 0,
-            levels: 20
-        });
-
-        if (!stackResponse || !stackResponse.stackFrames || stackResponse.stackFrames.length === 0) {
-            return {
-                success: false,
-                error: 'No stack frames available.'
-            };
-        }
-
-        // Use specified frame or top frame
-        const targetFrameId = frameId !== undefined ? frameId : stackResponse.stackFrames[0].id;
+        
+        console.log(`[DEBUG] Getting variables for frame ${targetFrameId}`);
         
         // Get scopes for the frame
         const scopesResponse = await session.customRequest('scopes', {
@@ -215,12 +230,14 @@ export async function debugEvaluate(expression: string, frameId?: number, contex
             };
         }
 
-        // Get frame ID if not provided
-        let targetFrameId = frameId;
-        if (targetFrameId === undefined) {
-            const threadsResponse = await session.customRequest('threads');
-            if (threadsResponse && threadsResponse.threads && threadsResponse.threads.length > 0) {
-                const threadId = threadsResponse.threads[0].id;
+        // Get frame ID - use stored value or provided value
+        let targetFrameId = frameId !== undefined ? frameId : debugState.getPausedFrameId();
+        
+        if (targetFrameId === undefined || targetFrameId === null) {
+            // Fallback: query for frame ID
+            console.log(`[DEBUG] No stored frameId, querying DAP`);
+            const threadId = debugState.getPausedThreadId();
+            if (threadId) {
                 const stackResponse = await session.customRequest('stackTrace', {
                     threadId: threadId,
                     startFrame: 0,
@@ -233,12 +250,14 @@ export async function debugEvaluate(expression: string, frameId?: number, contex
             }
         }
 
-        if (targetFrameId === undefined) {
+        if (targetFrameId === undefined || targetFrameId === null) {
             return {
                 success: false,
                 error: 'Could not determine frame ID for evaluation.'
             };
         }
+
+        console.log(`[DEBUG] Evaluating "${expression}" in frame ${targetFrameId}`);
 
         // Evaluate the expression
         const evaluateResponse = await session.customRequest('evaluate', {
