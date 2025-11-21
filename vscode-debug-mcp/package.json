@@ -15,7 +15,14 @@
     "onStartupFinished"
   ],
   "main": "./dist/extension.js",
-  "contributes": {},
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiDebugger.showOutput",
+        "title": "AI Debugger: Show Output"
+      }
+    ]
+  },
   "scripts": {
     "vscode:prepublish": "npm run build",
     "build": "node esbuild.js",
