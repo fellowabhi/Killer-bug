@@ -20,6 +20,11 @@
       {
         "command": "aiDebugger.showOutput",
         "title": "AI Debugger: Show Output"
+      },
+      {
+        "command": "aiDebugger.configure",
+        "title": "AI Debugger: Configure VS Code MCP",
+        "description": "Add AI Debugger MCP server to VS Code configuration (one-click setup)"
       }
     ]
   },

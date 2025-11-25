@@ -155,23 +155,28 @@ export class DebugState {
             }
         });
 
-        // Track active stack frame changes
+        // Track active stack frame changes - THIS IS THE PRIMARY SOURCE for pause detection
+        // Key insight: activeStackItem has frameId ONLY when actually paused
+        // - Not paused: {session, threadId} - NO frameId
+        // - Paused: {session, threadId, frameId} - HAS frameId
         vscode.debug.onDidChangeActiveStackItem(async (stackItem) => {
-            console.log(`[DEBUG] Stack item changed: ${stackItem ? 'PAUSED' : 'NOT PAUSED'}`);
-            console.log(`[DEBUG] Stack session ID: ${stackItem?.session?.id}, Current session ID: ${this.sessionId}`);
+            console.log(`[DEBUG] Stack item changed: ${stackItem ? JSON.stringify(stackItem) : 'null'}`);
             
             if (stackItem) {
-                // Stack item exists = debugger is paused
-                // This is the MOST RELIABLE signal for pause state
-                this.isPaused = true;
-                console.log('📍 Active stack item changed - isPaused set to TRUE');
-                console.log(`[DEBUG] isPaused changed: false -> true (stack item present)`);
+                // Check if frameId exists - this is the reliable indicator of being paused
+                const hasFrameId = 'frameId' in stackItem && (stackItem as any).frameId !== undefined;
                 
-                // Extract frame info from activeStackItem
-                if ('threadId' in stackItem) {
-                    // It's a DebugStackFrame
+                console.log(`[DEBUG] Stack item has frameId: ${hasFrameId}`);
+                
+                if (hasFrameId) {
+                    // Has frameId = actually paused at a specific stack frame
+                    this.isPaused = true;
+                    console.log('📍 Stack item has frameId - isPaused set to TRUE');
+                    
+                    // Extract frame info
                     this.pausedThreadId = (stackItem as any).threadId;
-                    console.log(`[DEBUG] Captured threadId: ${this.pausedThreadId}`);
+                    this.pausedFrameId = (stackItem as any).frameId;
+                    console.log(`[DEBUG] Captured threadId: ${this.pausedThreadId}, frameId: ${this.pausedFrameId}`);
                     
                     // Fetch full frame details
                     const session = vscode.debug.activeDebugSession;
@@ -179,17 +184,21 @@ export class DebugState {
                         await this.captureFrameDetails(session, stackItem as any);
                     }
                 } else {
-                    // It's a DebugThread - still capture info
-                    const session = vscode.debug.activeDebugSession;
-                    if (session) {
-                        await this.updateCurrentPosition(session);
+                    // Has threadId but NO frameId = connected but not paused (running)
+                    this.isPaused = false;
+                    this.isInEventLoop = false;
+                    console.log('📍 Stack item has NO frameId - isPaused set to FALSE (running)');
+                    
+                    // Still capture threadId for reference
+                    if ('threadId' in stackItem) {
+                        this.pausedThreadId = (stackItem as any).threadId;
                     }
                 }
             } else {
-                // Stack item cleared = debugger is running
-                console.log('📍 Stack item cleared - debugger running');
+                // Stack item cleared = no debug context
+                console.log('📍 Stack item cleared - isPaused set to FALSE');
                 this.isPaused = false;
-                console.log(`[DEBUG] isPaused changed: true -> false (stack item cleared)`);
+                this.isInEventLoop = false;
                 
                 // Clear all paused frame info
                 this.clearPausedFrameInfo();
@@ -454,6 +463,47 @@ export class DebugState {
     }
 
     /**
+     * Verify that we're actually paused by checking thread state
+     * This is needed because activeStackItem can persist even when running
+     */
+    private async verifyPausedState(session: vscode.DebugSession): Promise<boolean> {
+        try {
+            // Get threads and check if any are stopped
+            const threadsResponse = await session.customRequest('threads');
+            
+            if (threadsResponse?.threads) {
+                for (const thread of threadsResponse.threads) {
+                    // Try to get stack trace for this thread
+                    try {
+                        const stackResponse = await session.customRequest('stackTrace', {
+                            threadId: thread.id,
+                            startFrame: 0,
+                            levels: 1
+                        });
+                        
+                        // If we can get a stack frame, thread is paused
+                        if (stackResponse?.stackFrames?.length > 0) {
+                            console.log(`[DEBUG] verifyPausedState: Thread ${thread.id} has stack frames - PAUSED`);
+                            return true;
+                        }
+                    } catch (stackError: any) {
+                        // Stack trace failed - thread might be running
+                        // This is expected for running threads
+                        console.log(`[DEBUG] verifyPausedState: Thread ${thread.id} stack error: ${stackError.message}`);
+                    }
+                }
+            }
+            
+            console.log(`[DEBUG] verifyPausedState: No paused threads found - NOT PAUSED`);
+            return false;
+        } catch (error) {
+            console.error('[DEBUG] verifyPausedState error:', error);
+            // On error, assume paused (safer for debugging)
+            return true;
+        }
+    }
+
+    /**
      * Clear paused frame info when debugger resumes
      */
     private clearPausedFrameInfo(): void {
@@ -496,47 +546,39 @@ export class DebugState {
     }
 
     /**
-     * Manually refresh the paused state by checking thread status
+     * Manually refresh frame info when paused (NOT for setting isPaused state)
+     * isPaused is ONLY controlled by stopped/continued DAP events
      */
     async refreshPausedState(): Promise<void> {
-        console.log(`[DEBUG] refreshPausedState() called`);
+        console.log(`[DEBUG] refreshPausedState() called - current isPaused: ${this.isPaused}`);
         
-        // First check if there's an active stack item (most reliable)
-        const activeStackItem = vscode.debug.activeStackItem;
-        if (activeStackItem) {
-            console.log(`[DEBUG] Active stack item exists - isPaused = TRUE`);
-            this.isPaused = true;
-            return;
-        }
+        // DO NOT use activeStackItem to set isPaused - it's unreliable
+        // isPaused is ONLY controlled by stopped/continued events
         
         const session = this.getActiveSession();
         if (!session) {
-            console.log(`[DEBUG] No active session - isPaused = FALSE`);
-            this.isPaused = false;
-            this.isInEventLoop = false;
+            console.log(`[DEBUG] No active session`);
             return;
         }
 
-        try {
-            const threadsResponse = await session.customRequest('threads');
-            console.log(`[DEBUG] Threads response:`, JSON.stringify(threadsResponse, null, 2));
-            
-            if (threadsResponse && threadsResponse.threads && threadsResponse.threads.length > 0) {
-                // Update all thread states
-                for (const thread of threadsResponse.threads) {
-                    console.log(`[DEBUG] Thread ${thread.id} (${thread.name}): stopped=${thread.stopped}`);
-                    this.threads.set(thread.id, {
-                        id: thread.id,
-                        name: thread.name,
-                        stopped: thread.stopped === true
-                    });
-                }
-
-                // Check if main thread or any user thread is stopped
-                const hasStoppedThread = Array.from(this.threads.values()).some(t => t.stopped);
+        // If we think we're paused, try to refresh the position info
+        if (this.isPaused) {
+            try {
+                const threadsResponse = await session.customRequest('threads');
+                console.log(`[DEBUG] Threads response:`, JSON.stringify(threadsResponse, null, 2));
                 
-                if (hasStoppedThread) {
-                    // Try to get stack trace to confirm and update position
+                if (threadsResponse && threadsResponse.threads && threadsResponse.threads.length > 0) {
+                    // Update all thread states
+                    for (const thread of threadsResponse.threads) {
+                        console.log(`[DEBUG] Thread ${thread.id} (${thread.name}): stopped=${thread.stopped}`);
+                        this.threads.set(thread.id, {
+                            id: thread.id,
+                            name: thread.name,
+                            stopped: thread.stopped === true
+                        });
+                    }
+
+                    // Try to get stack trace to update position info
                     const stoppedThread = Array.from(this.threads.values()).find(t => t.stopped);
                     if (stoppedThread) {
                         try {
@@ -547,7 +589,7 @@ export class DebugState {
                             });
                             
                             if (stackResponse?.stackFrames?.length > 0) {
-                                // Thread is stopped with valid stack - update position
+                                // Update position info
                                 const topFrame = stackResponse.stackFrames[0];
                                 this.stackFrames = stackResponse.stackFrames;
                                 this.currentLine = topFrame.line;
@@ -555,35 +597,16 @@ export class DebugState {
                                 if (topFrame.source && topFrame.source.path) {
                                     this.currentFile = topFrame.source.path;
                                 }
-                                
-                                // Set isPaused = true, then check if event loop
-                                this.isPaused = true;
-                                console.log('🔄 Refreshed state: isPaused = TRUE (thread stopped with stack)');
-                                console.log(`   Position: ${this.currentFunction} at ${this.currentFile}:${this.currentLine}`);
-                                
-                                // Check if we're in event loop and should set isPaused = false
-                                await this.checkIfInEventLoop(session, stoppedThread.id);
-                                return;
-                            } else {
-                                // Thread stopped but no stack frames - might be terminating
-                                console.log('⚠️ Thread stopped but no stack frames');
+                                console.log(`🔄 Refreshed position: ${this.currentFunction} at ${this.currentFile}:${this.currentLine}`);
                             }
                         } catch (stackError) {
                             console.log('⚠️ Error getting stack trace:', stackError);
-                            // Don't change isPaused state on error - keep existing state
-                            return;
                         }
                     }
                 }
-                
-                // No stopped threads - definitely not paused
-                this.isPaused = false;
-                this.isInEventLoop = false;
-                console.log('🔄 Refreshed state: isPaused = FALSE (no stopped threads)');
-                console.log(`[DEBUG] isPaused changed: true -> false (no stopped threads)`);
+            } catch (error) {
+                console.error('[DEBUG] Error refreshing frame info:', error);
             }
-        } catch (error) {
-            console.error('[DEBUG] Error refreshing paused state:', error);
         }
     }
 
