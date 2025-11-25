@@ -4,6 +4,10 @@
   "description": "MCP server for AI-powered debugging in VS Code",
   "version": "0.1.0",
   "publisher": "fellowabhi",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fellowabhi/Killer-bug"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
