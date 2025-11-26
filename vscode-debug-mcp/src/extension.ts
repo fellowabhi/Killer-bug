@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
-import { startMCPServer, stopMCPServer } from './mcp-server';
+import { startMCPServer, stopMCPServer, setMCPPort, getMCPPort } from './mcp-server';
 import { statusBarManager } from './status-bar';
-import { mcpConfigManager } from './mcp-config';
+import { ProjectMCPConfigManager } from './project-mcp-config';
+import { PortManager } from './port-manager';
 
 /**
  * Extension activation entry point
@@ -19,102 +20,198 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(showOutputCommand);
 
-    // Register configure command for VS Code
+    // Register configure command for VS Code (project-level)
     const configureCommand = vscode.commands.registerCommand('aiDebugger.configure', async () => {
         console.log('[Extension] Configure VS Code MCP command called');
+        
+        // Get workspace folder
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+            vscode.window.showErrorMessage('Please open a project folder to configure MCP');
+            return;
+        }
+
+        const projectRoot = workspaceFolders[0].uri.fsPath;
+        const configManager = new ProjectMCPConfigManager(projectRoot, 'vscode');
         
         // Show progress while configuring
         await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Notification,
-                title: 'Configuring AI Debugger MCP for VS Code...',
+                title: 'Configuring AI Debugger MCP for this project (VS Code)...',
                 cancellable: false
             },
             async (progress) => {
-                progress.report({ increment: 0 });
-                
-                // Configure VS Code MCP
-                const result = await mcpConfigManager.configureVSCode(3100);
-                
-                progress.report({ increment: 100 });
+                try {
+                    progress.report({ increment: 20 });
 
-                if (result.success) {
-                    statusBarManager.showSuccess('MCP Configured (VS Code)');
+                    // Get status to see if already configured
+                    const status = configManager.getStatus();
+                    let portToUse = 3100;
+
+                    if (status.configured && status.port) {
+                        portToUse = status.port;
+                        console.log(`[Extension] Project already configured on port ${portToUse}`);
+                    } else {
+                        // Find available port and ask user
+                        progress.report({ increment: 40 });
+                        const suggestions = await PortManager.getSuggestedPorts(3100, 3);
+                        
+                        const userChoice = await vscode.window.showQuickPick(
+                            suggestions.map(p => ({ label: `Port ${p}`, description: '', port: p })),
+                            {
+                                placeHolder: 'Select port for MCP server (or use default)',
+                                title: 'Choose MCP Server Port'
+                            }
+                        );
+
+                        if (userChoice) {
+                            portToUse = userChoice.port;
+                            console.log(`[Extension] User selected port ${portToUse}`);
+                        } else {
+                            vscode.window.showInformationMessage('MCP configuration cancelled');
+                            return;
+                        }
+                    }
+
+                    progress.report({ increment: 60 });
+
+                    // Configure project with selected port
+                    const result = await configManager.configureProject(portToUse);
                     
-                    // Show result with action buttons
-                    vscode.window.showInformationMessage(
-                        result.message,
-                        { modal: false },
-                        {
-                            title: 'Open Config File',
-                            action: async () => {
-                                try {
-                                    const configUri = vscode.Uri.file(result.configPath);
-                                    await vscode.commands.executeCommand('vscode.open', configUri);
-                                } catch (error) {
-                                    vscode.window.showErrorMessage(`Failed to open config file: ${error}`);
+                    progress.report({ increment: 100 });
+
+                    if (result.success) {
+                        statusBarManager.showSuccess('MCP Configured (Project)');
+                        
+                        // Set the port for this extension instance
+                        setMCPPort(portToUse);
+
+                        // Show result with action buttons
+                        vscode.window.showInformationMessage(
+                            result.message,
+                            { modal: false },
+                            {
+                                title: 'Open Config File',
+                                action: async () => {
+                                    try {
+                                        const configUri = vscode.Uri.file(result.configPath);
+                                        await vscode.commands.executeCommand('vscode.open', configUri);
+                                    } catch (error) {
+                                        vscode.window.showErrorMessage(`Failed to open config file: ${error}`);
+                                    }
                                 }
                             }
-                        }
-                    );
+                        );
 
-                    console.log('[Extension] VS Code configuration successful');
-                } else {
-                    statusBarManager.showError('MCP Config Failed');
-                    vscode.window.showErrorMessage(result.message, { modal: true });
-                    console.log('[Extension] VS Code configuration failed');
+                        console.log('[Extension] Project configuration successful');
+                    } else {
+                        statusBarManager.showError('MCP Config Failed');
+                        vscode.window.showErrorMessage(result.message, { modal: true });
+                        console.log('[Extension] Project configuration failed');
+                    }
+                } catch (error) {
+                    console.error('[Extension] Error in configure command:', error);
+                    vscode.window.showErrorMessage(`Error: ${error}`);
                 }
             }
         );
     });
     context.subscriptions.push(configureCommand);
 
-    // Register configure command for Cursor IDE
+    // Register configure command for Cursor IDE (project-level)
     const configureCursorCommand = vscode.commands.registerCommand('aiDebugger.configureCursor', async () => {
         console.log('[Extension] Configure Cursor MCP command called');
+        
+        // Get workspace folder
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+            vscode.window.showErrorMessage('Please open a project folder to configure MCP');
+            return;
+        }
+
+        const projectRoot = workspaceFolders[0].uri.fsPath;
+        const configManager = new ProjectMCPConfigManager(projectRoot, 'cursor');
         
         // Show progress while configuring
         await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Notification,
-                title: 'Configuring AI Debugger MCP for Cursor...',
+                title: 'Configuring AI Debugger MCP for this project (Cursor)...',
                 cancellable: false
             },
             async (progress) => {
-                progress.report({ increment: 0 });
-                
-                // Create a temporary manager for Cursor configuration
-                const { MCPConfigManager } = await import('./mcp-config');
-                const cursorConfigManager = new MCPConfigManager(3100, 'cursor');
-                const result = await cursorConfigManager.configureCursor(3100);
-                
-                progress.report({ increment: 100 });
+                try {
+                    progress.report({ increment: 20 });
 
-                if (result.success) {
-                    statusBarManager.showSuccess('MCP Configured (Cursor)');
+                    // Get status to see if already configured
+                    const status = configManager.getStatus();
+                    let portToUse = 3100;
+
+                    if (status.configured && status.port) {
+                        portToUse = status.port;
+                        console.log(`[Extension] Project already configured on port ${portToUse}`);
+                    } else {
+                        // Find available port and ask user
+                        progress.report({ increment: 40 });
+                        const suggestions = await PortManager.getSuggestedPorts(3100, 3);
+                        
+                        const userChoice = await vscode.window.showQuickPick(
+                            suggestions.map(p => ({ label: `Port ${p}`, description: '', port: p })),
+                            {
+                                placeHolder: 'Select port for MCP server (or use default)',
+                                title: 'Choose MCP Server Port'
+                            }
+                        );
+
+                        if (userChoice) {
+                            portToUse = userChoice.port;
+                            console.log(`[Extension] User selected port ${portToUse}`);
+                        } else {
+                            vscode.window.showInformationMessage('MCP configuration cancelled');
+                            return;
+                        }
+                    }
+
+                    progress.report({ increment: 60 });
+
+                    // Configure project with selected port
+                    const result = await configManager.configureProject(portToUse);
                     
-                    // Show result with action buttons
-                    vscode.window.showInformationMessage(
-                        result.message,
-                        { modal: false },
-                        {
-                            title: 'Open Config File',
-                            action: async () => {
-                                try {
-                                    const configUri = vscode.Uri.file(result.configPath);
-                                    await vscode.commands.executeCommand('vscode.open', configUri);
-                                } catch (error) {
-                                    vscode.window.showErrorMessage(`Failed to open config file: ${error}`);
+                    progress.report({ increment: 100 });
+
+                    if (result.success) {
+                        statusBarManager.showSuccess('MCP Configured (Project)');
+                        
+                        // Set the port for this extension instance
+                        setMCPPort(portToUse);
+
+                        // Show result with action buttons
+                        vscode.window.showInformationMessage(
+                            result.message,
+                            { modal: false },
+                            {
+                                title: 'Open Config File',
+                                action: async () => {
+                                    try {
+                                        const configUri = vscode.Uri.file(result.configPath);
+                                        await vscode.commands.executeCommand('vscode.open', configUri);
+                                    } catch (error) {
+                                        vscode.window.showErrorMessage(`Failed to open config file: ${error}`);
+                                    }
                                 }
                             }
-                        }
-                    );
+                        );
 
-                    console.log('[Extension] Cursor configuration successful');
-                } else {
-                    statusBarManager.showError('MCP Config Failed');
-                    vscode.window.showErrorMessage(result.message, { modal: true });
-                    console.log('[Extension] Cursor configuration failed');
+                        console.log('[Extension] Project configuration successful');
+                    } else {
+                        statusBarManager.showError('MCP Config Failed');
+                        vscode.window.showErrorMessage(result.message, { modal: true });
+                        console.log('[Extension] Project configuration failed');
+                    }
+                } catch (error) {
+                    console.error('[Extension] Error in configure Cursor command:', error);
+                    vscode.window.showErrorMessage(`Error: ${error}`);
                 }
             }
         );
@@ -123,9 +220,22 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Auto-start MCP server on activation
     try {
+        // Try to read project config if in workspace
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+            const projectRoot = workspaceFolders[0].uri.fsPath;
+            const configManager = new ProjectMCPConfigManager(projectRoot, 'vscode');
+            const status = configManager.getStatus();
+            
+            if (status.configured && status.port) {
+                console.log(`[Extension] Loading project MCP port: ${status.port}`);
+                setMCPPort(status.port);
+            }
+        }
+
         startMCPServer();
-        console.log('MCP server started automatically');
-        statusBarManager.showSuccess('MCP Server started');
+        console.log(`MCP server started automatically on port ${getMCPPort()}`);
+        statusBarManager.showSuccess(`MCP Server started (port ${getMCPPort()})`);
     } catch (error) {
         console.error('Failed to start MCP server:', error);
         statusBarManager.showError('MCP Server failed to start');

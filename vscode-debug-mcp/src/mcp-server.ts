@@ -4,17 +4,46 @@ import { handleSessionTool } from './tools/session';
 import { handleBreakpointTool } from './tools/breakpoints';
 import { handleExecutionTool } from './tools/execution';
 import { handleInspectionTool } from './tools/inspection';
+import { PortManager } from './port-manager';
 
 let httpServer: any = null;
-const PORT = 3100;
+let currentPort: number = 3100;
+
+/**
+ * Set the port for MCP server (called by extension)
+ */
+export function setMCPPort(port: number): void {
+    currentPort = port;
+    console.log(`[MCP Server] Port set to ${port}`);
+}
+
+/**
+ * Get the current port the MCP server is running on
+ */
+export function getMCPPort(): number {
+    return currentPort;
+}
 
 /**
  * Start the MCP server with HTTP JSON-RPC transport
  */
-export function startMCPServer() {
+export async function startMCPServer() {
     if (httpServer) {
-        console.log('MCP server already running on port', PORT);
+        console.log('MCP server already running on port', currentPort);
         return;
+    }
+
+    // Try to find an available port if the current one is in use
+    try {
+        const portInUse = await PortManager.isPortInUse(currentPort);
+        if (portInUse) {
+            console.log(`[MCP Server] Port ${currentPort} is in use, finding available port...`);
+            const availablePort = await PortManager.findAvailablePort(currentPort);
+            console.log(`[MCP Server] Using available port: ${availablePort}`);
+            currentPort = availablePort;
+        }
+    } catch (error) {
+        console.warn('[MCP Server] Could not check port availability:', error);
     }
 
     // Create Express app
@@ -103,10 +132,10 @@ export function startMCPServer() {
     });
 
     // Start HTTP server
-    httpServer = app.listen(PORT, () => {
-        console.log(`MCP server listening on http://localhost:${PORT}`);
-        console.log(`MCP endpoint: POST http://localhost:${PORT}/mcp`);
-        console.log(`Health check: GET http://localhost:${PORT}/health`);
+    httpServer = app.listen(currentPort, () => {
+        console.log(`MCP server listening on http://localhost:${currentPort}`);
+        console.log(`MCP endpoint: POST http://localhost:${currentPort}/mcp`);
+        console.log(`Health check: GET http://localhost:${currentPort}/health`);
     });
 }
 
