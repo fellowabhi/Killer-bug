@@ -1,7 +1,7 @@
 {
   "name": "vscode-debug-mcp",
-  "displayName": "AI Debug MCP Server",
-  "description": "MCP server for AI-powered debugging in VS Code",
+  "displayName": "Killer Bug",
+  "description": "Advanced debugging tools for VS Code (Killer Bug)",
   "version": "0.1.0",
   "publisher": "fellowabhi",
   "repository": {
@@ -29,6 +29,11 @@
         "command": "aiDebugger.configure",
         "title": "AI Debugger: Configure VS Code MCP",
         "description": "Add AI Debugger MCP server to VS Code configuration (one-click setup)"
+      },
+      {
+        "command": "aiDebugger.configureCursor",
+        "title": "AI Debugger: Configure Cursor MCP",
+        "description": "Add AI Debugger MCP server to Cursor IDE configuration (one-click setup)"
       }
     ]
   },

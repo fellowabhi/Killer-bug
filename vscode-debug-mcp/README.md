@@ -81,6 +81,24 @@ Configure your AI assistant's MCP client to connect:
 }
 ```
 
+### IDE-Specific Configuration
+
+The extension provides two commands to auto-configure the MCP settings:
+
+**For VS Code Users:**
+- Command: `AI Debugger: Configure VS Code MCP`
+- Configures: `~/.config/Code/User/mcp.json` (Linux), `~/Library/Application Support/Code/User/mcp.json` (macOS), `%APPDATA%\Code\User\mcp.json` (Windows)
+
+**For Cursor IDE Users:**
+- Command: `AI Debugger: Configure Cursor MCP`
+- Configures: `~/.cursor/mcp.json` (Linux), `~/Library/Application Support/Cursor/User/mcp.json` (macOS), `%APPDATA%\Cursor\User\mcp.json` (Windows)
+
+**How to use:**
+1. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+2. Search for the appropriate command based on your IDE
+3. Click to auto-configure your MCP settings (one-click setup!)
+4. Restart your AI assistant to use the debugger
+
 ## Usage
 
 1. **Extension activates automatically** when VS Code starts

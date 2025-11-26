@@ -3,31 +3,49 @@ import * as path from 'path';
 import * as os from 'os';
 
 /**
- * MCP Config Manager - handles VS Code MCP configuration
+ * MCP Config Manager - handles VS Code and Cursor MCP configuration
  */
 export class MCPConfigManager {
     private configPath: string;
+    private ideType: 'vscode' | 'cursor';
 
-    constructor(port: number = 3100) {
+    constructor(port: number = 3100, ideType: 'vscode' | 'cursor' = 'vscode') {
+        this.ideType = ideType;
         this.configPath = this.getMCPConfigPath();
     }
 
     /**
-     * Get the correct MCP config path based on OS
+     * Get the correct MCP config path based on OS and IDE
      */
     private getMCPConfigPath(): string {
         const homeDir = os.homedir();
         
-        if (process.platform === 'win32') {
-            // Windows: %APPDATA%\Code\User\mcp.json
-            const appData = process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming');
-            return path.join(appData, 'Code', 'User', 'mcp.json');
-        } else if (process.platform === 'darwin') {
-            // macOS: ~/Library/Application Support/Code/User/mcp.json
-            return path.join(homeDir, 'Library', 'Application Support', 'Code', 'User', 'mcp.json');
+        if (this.ideType === 'cursor') {
+            // Cursor IDE paths
+            if (process.platform === 'win32') {
+                // Windows: %APPDATA%\Cursor\User\mcp.json
+                const appData = process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming');
+                return path.join(appData, 'Cursor', 'User', 'mcp.json');
+            } else if (process.platform === 'darwin') {
+                // macOS: ~/Library/Application Support/Cursor/User/mcp.json
+                return path.join(homeDir, 'Library', 'Application Support', 'Cursor', 'User', 'mcp.json');
+            } else {
+                // Linux: ~/.cursor/mcp.json
+                return path.join(homeDir, '.cursor', 'mcp.json');
+            }
         } else {
-            // Linux: ~/.config/Code/User/mcp.json
-            return path.join(homeDir, '.config', 'Code', 'User', 'mcp.json');
+            // VS Code paths (default)
+            if (process.platform === 'win32') {
+                // Windows: %APPDATA%\Code\User\mcp.json
+                const appData = process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming');
+                return path.join(appData, 'Code', 'User', 'mcp.json');
+            } else if (process.platform === 'darwin') {
+                // macOS: ~/Library/Application Support/Code/User/mcp.json
+                return path.join(homeDir, 'Library', 'Application Support', 'Code', 'User', 'mcp.json');
+            } else {
+                // Linux: ~/.config/Code/User/mcp.json
+                return path.join(homeDir, '.config', 'Code', 'User', 'mcp.json');
+            }
         }
     }
 
@@ -78,7 +96,26 @@ export class MCPConfigManager {
      * Adds or updates AI Debug MCP server in VS Code config
      */
     async configureVSCode(port: number = 3100): Promise<{ success: boolean; message: string; configPath: string }> {
-        console.log(`[MCP Config] Configuring VS Code MCP server on port ${port}`);
+        this.ideType = 'vscode';
+        this.configPath = this.getMCPConfigPath();
+        return this.configure(port, 'VS Code');
+    }
+
+    /**
+     * Configure Cursor IDE MCP server
+     * Adds or updates AI Debug MCP server in Cursor config
+     */
+    async configureCursor(port: number = 3100): Promise<{ success: boolean; message: string; configPath: string }> {
+        this.ideType = 'cursor';
+        this.configPath = this.getMCPConfigPath();
+        return this.configure(port, 'Cursor');
+    }
+
+    /**
+     * Internal method to configure MCP for the specified IDE
+     */
+    private async configure(port: number, ideName: string): Promise<{ success: boolean; message: string; configPath: string }> {
+        console.log(`[MCP Config] Configuring ${ideName} MCP server on port ${port}`);
 
         try {
             // Read existing config
@@ -108,7 +145,7 @@ export class MCPConfigManager {
                 if (existingConfig.env?.MCP_PORT == port) {
                     return {
                         success: true,
-                        message: `✅ AI Debug MCP server already configured on port ${port}. No changes needed.`,
+                        message: `✅ AI Debug MCP server already configured on port ${port} in ${ideName}. No changes needed.`,
                         configPath: this.configPath
                     };
                 } else {
@@ -128,7 +165,8 @@ export class MCPConfigManager {
             if (success) {
                 return {
                     success: true,
-                    message: `✅ VS Code MCP configured successfully!\n\n` +
+                    message: `✅ ${ideName} MCP configured successfully!\n\n` +
+                            `IDE: ${ideName}\n` +
                             `Server: ai-debug\n` +
                             `Port: ${port}\n` +
                             `Config: ${this.configPath}\n\n` +
@@ -138,7 +176,7 @@ export class MCPConfigManager {
             } else {
                 return {
                     success: false,
-                    message: `❌ Failed to write MCP configuration.\n\n` +
+                    message: `❌ Failed to write MCP configuration to ${ideName}.\n\n` +
                             `Please check file permissions for:\n${this.configPath}`,
                     configPath: this.configPath
                 };
@@ -147,7 +185,7 @@ export class MCPConfigManager {
             console.error('[MCP Config] Error during configuration:', error);
             return {
                 success: false,
-                message: `❌ Error configuring MCP: ${error.message}\n\n` +
+                message: `❌ Error configuring ${ideName} MCP: ${error.message}\n\n` +
                         `Please check the Extension Host output for details.`,
                 configPath: this.configPath
             };
@@ -200,8 +238,15 @@ export class MCPConfigManager {
         } else if (process.platform === 'darwin') {
             return 'macOS (Library)';
         } else {
-            return 'Linux (~/.config)';
+            return 'Linux (~/.config or ~/.cursor)';
         }
+    }
+
+    /**
+     * Get IDE name
+     */
+    getIDEName(): string {
+        return this.ideType === 'cursor' ? 'Cursor' : 'VS Code';
     }
 }
 

@@ -19,15 +19,15 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(showOutputCommand);
 
-    // Register configure command
+    // Register configure command for VS Code
     const configureCommand = vscode.commands.registerCommand('aiDebugger.configure', async () => {
-        console.log('[Extension] Configure command called');
+        console.log('[Extension] Configure VS Code MCP command called');
         
         // Show progress while configuring
         await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Notification,
-                title: 'Configuring AI Debugger MCP...',
+                title: 'Configuring AI Debugger MCP for VS Code...',
                 cancellable: false
             },
             async (progress) => {
@@ -39,7 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
                 progress.report({ increment: 100 });
 
                 if (result.success) {
-                    statusBarManager.showSuccess('MCP Configured');
+                    statusBarManager.showSuccess('MCP Configured (VS Code)');
                     
                     // Show result with action buttons
                     vscode.window.showInformationMessage(
@@ -58,16 +58,68 @@ export function activate(context: vscode.ExtensionContext) {
                         }
                     );
 
-                    console.log('[Extension] Configuration successful');
+                    console.log('[Extension] VS Code configuration successful');
                 } else {
                     statusBarManager.showError('MCP Config Failed');
                     vscode.window.showErrorMessage(result.message, { modal: true });
-                    console.log('[Extension] Configuration failed');
+                    console.log('[Extension] VS Code configuration failed');
                 }
             }
         );
     });
     context.subscriptions.push(configureCommand);
+
+    // Register configure command for Cursor IDE
+    const configureCursorCommand = vscode.commands.registerCommand('aiDebugger.configureCursor', async () => {
+        console.log('[Extension] Configure Cursor MCP command called');
+        
+        // Show progress while configuring
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: 'Configuring AI Debugger MCP for Cursor...',
+                cancellable: false
+            },
+            async (progress) => {
+                progress.report({ increment: 0 });
+                
+                // Create a temporary manager for Cursor configuration
+                const { MCPConfigManager } = await import('./mcp-config');
+                const cursorConfigManager = new MCPConfigManager(3100, 'cursor');
+                const result = await cursorConfigManager.configureCursor(3100);
+                
+                progress.report({ increment: 100 });
+
+                if (result.success) {
+                    statusBarManager.showSuccess('MCP Configured (Cursor)');
+                    
+                    // Show result with action buttons
+                    vscode.window.showInformationMessage(
+                        result.message,
+                        { modal: false },
+                        {
+                            title: 'Open Config File',
+                            action: async () => {
+                                try {
+                                    const configUri = vscode.Uri.file(result.configPath);
+                                    await vscode.commands.executeCommand('vscode.open', configUri);
+                                } catch (error) {
+                                    vscode.window.showErrorMessage(`Failed to open config file: ${error}`);
+                                }
+                            }
+                        }
+                    );
+
+                    console.log('[Extension] Cursor configuration successful');
+                } else {
+                    statusBarManager.showError('MCP Config Failed');
+                    vscode.window.showErrorMessage(result.message, { modal: true });
+                    console.log('[Extension] Cursor configuration failed');
+                }
+            }
+        );
+    });
+    context.subscriptions.push(configureCursorCommand);
 
     // Auto-start MCP server on activation
     try {
