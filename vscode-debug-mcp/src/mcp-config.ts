@@ -121,10 +121,14 @@ export class MCPConfigManager {
             // Read existing config
             let config = this.readConfig();
             
-            // Initialize servers array if not exists
-            if (!config.servers) {
-                config.servers = {};
-                console.log('[MCP Config] Created servers object');
+            // Determine the correct key based on IDE
+            // VS Code uses "servers", Cursor uses "mcpServers"
+            const serverKey = this.ideType === 'cursor' ? 'mcpServers' : 'servers';
+            
+            // Initialize servers object if not exists
+            if (!config[serverKey]) {
+                config[serverKey] = {};
+                console.log(`[MCP Config] Created ${serverKey} object`);
             }
 
             // Define AI Debug server config for HTTP transport
@@ -137,7 +141,7 @@ export class MCPConfigManager {
             };
 
             // Check if already configured
-            const existingConfig = config.servers['ai-debug'];
+            const existingConfig = config[serverKey]['ai-debug'];
             if (existingConfig) {
                 console.log('[MCP Config] AI Debug server already configured');
                 
@@ -151,12 +155,12 @@ export class MCPConfigManager {
                 } else {
                     // Update port
                     console.log(`[MCP Config] Updating port from ${existingConfig.env?.MCP_PORT} to ${port}`);
-                    config.servers['ai-debug'] = aiDebugServerConfig;
+                    config[serverKey]['ai-debug'] = aiDebugServerConfig;
                 }
             } else {
                 // Add new server
                 console.log('[MCP Config] Adding AI Debug server configuration');
-                config.servers['ai-debug'] = aiDebugServerConfig;
+                config[serverKey]['ai-debug'] = aiDebugServerConfig;
             }
 
             // Write config
@@ -198,7 +202,10 @@ export class MCPConfigManager {
     getStatus(): { configured: boolean; port?: number; configPath: string } {
         try {
             const config = this.readConfig();
-            const serverConfig = config.servers?.['ai-debug'];
+            
+            // Check both VS Code (servers) and Cursor (mcpServers) keys
+            const serverKey = this.ideType === 'cursor' ? 'mcpServers' : 'servers';
+            const serverConfig = config[serverKey]?.['ai-debug'];
             
             if (serverConfig) {
                 const port = serverConfig.env?.MCP_PORT || 3100;
