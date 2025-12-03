@@ -200,9 +200,9 @@ A: Yes! Remote debugging is perfect for debugging live servers safely.
 
 ## 📖 More Information
 
-- [Remote Debugging Guide](REMOTE_DEBUGGING.md)
-- [Testing Guide](TESTING.md)
-- [Known Issues](KNOWN_ISSUES.md)
+- [Remote Debugging Guide](docs/REMOTE_DEBUGGING.md)
+- [Testing Guide](docs/TESTING.md)
+- [Known Issues](docs/KNOWN_ISSUES.md)
 
 ---
 

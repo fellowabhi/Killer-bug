@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "publisher": "fellowabhi",
   "license": "GPL-3.0-or-later",
-  "icon": "killer-bug-icon-small.png",
+  "icon": "assets/killer-bug-icon-small.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/fellowabhi/Killer-bug"

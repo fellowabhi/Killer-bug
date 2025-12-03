@@ -1,0 +1,32 @@
+# Source files
+src/**
+tsconfig.json
+esbuild.js
+
+# Development files
+.gitignore
+.github/**
+docs/development/**
+
+# Tests
+test/**
+
+# Build artifacts
+*.vsix
+dist/**/*.map
+
+# Dependencies
+node_modules/**
+
+# Git
+.git/**
+.gitignore
+
+# Editor
+.vscode/**
+.vscode-test/**
+
+# Other
+**/*.md
+!README.md
+!CHANGELOG.md
