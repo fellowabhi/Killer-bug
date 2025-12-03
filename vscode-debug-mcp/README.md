@@ -1,79 +1,121 @@
-# VS Code Debug MCP Server
+# Killer Bug AI Debugger
 
-AI-powered debugging for VS Code via Model Context Protocol.
+**Let your AI assistant debug your code automatically for accurate runtime context**
 
-Provides AI assistants with complete control over VS Code's debugger through 17 specialized tools for session management, breakpoints, execution control, code inspection, and **remote debugging**.
+An MCP-powered debugging extension that gives **VS Code Copilot**, **Cursor AI**, Claude Desktop, ChatGPT, and other AI assistants complete control over VS Code's debugger. AI can now set breakpoints, step through code, inspect variables, and find bugs—all without you touching the keyboard.
 
-## Features
+## ⚡ Quick Start
 
-### Session Management (6 tools)
-- **debug_start** - Start debugging any file (auto-detects language)
-- **debug_stop** - Stop debug session
-- **debug_getStatus** - Get current execution state
-- **debug_listConfigs** - List debug configurations from launch.json ⭐ NEW
-- **debug_startWithConfig** - Use existing launch.json configurations ⭐ NEW
-- **debug_attach** - Attach to running process (FastAPI, Node.js, etc.) ⭐ NEW
+1. **Install** the extension from VS Code marketplace
+2. **Configure** (for each project):
+   - Extension shows "Configuration Required" popup → Click it
+   - Or run: `Killer Bug: Configure AI Debugger` from Command Palette
+   - Select your IDE (VS Code or Cursor)
+3. **Connect** your AI:
+   - **Cursor**: Go to Settings → Enable MCP Server "killer-bug-<your-project-name>"
+   - **VS Code**: Open `mcp.json` → Click "Start" icon on top of "killer-bug-<your-project-name>" in servers
+4. **Start debugging**: Chat with your AI: *"Debug this code and find the bug"*
 
-### Breakpoint Management (3 tools)
-- **debug_setBreakpoint** - Set breakpoints (with optional conditions)
-- **debug_removeBreakpoint** - Remove breakpoints
-- **debug_listBreakpoints** - List all active breakpoints
+That's it! Your AI debugger is ready.
 
-### Execution Control (5 tools)
-- **debug_continue** - Continue to next breakpoint
-- **debug_stepOver** - Step over current line
-- **debug_stepInto** - Step into function call
-- **debug_stepOut** - Step out of current function
-- **debug_pause** - Pause execution
+---
 
-### Code Inspection (3 tools)
-- **debug_getStackTrace** - Get call stack with function names and line numbers
-- **debug_getVariables** - Inspect variables in current scope
-- **debug_evaluate** - Evaluate expressions in debug context
+## 🎯 What It Does
 
-## Remote Debugging 🆕
+### 🎬 Live Debugging
+Your AI can:
+- Start debugging any file (Python, JavaScript, TypeScript, etc.)
+- Set breakpoints and conditional breakpoints
+- Step through code line by line
+- Inspect variables and the call stack
+- Evaluate expressions in real-time
 
-Version 0.2.0 adds support for attaching to running processes and using your existing launch.json configurations.
+**[GIF: AI Setting Breakpoint and Stepping Through Code]**
 
-**Example: FastAPI Debugging**
-```
-1. AI starts: python -m debugpy --listen 5678 main.py
-2. AI attaches: debug_attach({ type: "debugpy", port: 5678 })
-3. AI sets breakpoints and calls your API
-4. AI inspects variables and finds bugs automatically!
-```
+### 🔗 Remote Debugging
+- Attach to running servers (FastAPI, Node.js, Flask, etc.)
+- Debug over the network or in containers
+- Use your existing `launch.json` configurations
+- Perfect for production debugging
 
-See [REMOTE_DEBUGGING.md](REMOTE_DEBUGGING.md) for complete guide with examples.
+**[GIF: AI Attaching to Running FastAPI Server and Inspecting Variables]**
 
-## Installation
+### 🧠 AI-Powered Bug Hunting
+- AI automatically explores your code
+- Sets strategic breakpoints
+- Finds and explains bugs
+- Suggests fixes
 
-### From Marketplace (Coming Soon)
-1. Search "AI Debug MCP" in VS Code Extensions
-2. Click Install
-3. Extension auto-starts on activation
+**[GIF: AI Finding and Explaining a Bug]**
 
-### Development Install
-1. Clone this repository
-2. Run `npm install`
-3. Run `npm run build`
-4. Press F5 to launch Extension Development Host
+---
 
-## Architecture
-
-The extension runs an HTTP JSON-RPC server on `localhost:3100` that implements the Model Context Protocol. AI assistants connect via HTTP to access debug tools.
+## 📚 How It Works
 
 ```
-VS Code Extension → HTTP Server (port 3100) → MCP Tools → VS Code Debug API
+Your AI → MCP Protocol → Killer Bug → VS Code Debugger → Your Code
 ```
 
-## MCP Client Configuration
+The extension runs an HTTP server that implements the Model Context Protocol. Your AI connects and controls the debugger through 17 specialized tools.
 
-Configure your AI assistant's MCP client to connect:
+---
+
+## 🛠️ Features & Tools
+
+**Session Control**
+- Start debugging any file (auto-detects language)
+- Stop debug session
+- Check execution state
+- List and use existing `launch.json` configurations
+- Attach to running processes
+
+**Breakpoints**
+- Set breakpoints with conditions
+- Remove breakpoints
+- List all breakpoints
+
+**Execution**
+- Continue to next breakpoint
+- Step over/into/out of functions
+- Pause execution
+
+**Inspection**
+- View call stack with function names & line numbers
+- Inspect variables in current scope
+- Evaluate expressions safely
+
+---
+
+## 🚀 Installation & Setup
+
+### Marketplace (Recommended)
+1. Open VS Code → Extensions
+2. Search `Killer Bug AI Debugger`
+3. Click Install
+
+### Development
+```bash
+git clone <repo>
+cd vscode-debug-mcp
+npm install
+npm run build
+# Press F5 to launch
+```
+
+### Configure for Your AI
+
+**One-Click Setup:**
+1. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+2. Run: `Killer Bug: Configure AI Debugger`
+3. Select your IDE (VS Code or Cursor)
+4. Done! Restart your AI assistant
+
+Or manual configuration for your MCP client:
 
 ```json
 {
   "mcpServers": {
-    "ai-debugger": {
+    "killer-bug-debugger": {
       "type": "http",
       "url": "http://localhost:3100/mcp"
     }
@@ -81,112 +123,95 @@ Configure your AI assistant's MCP client to connect:
 }
 ```
 
-### IDE-Specific Configuration
+---
 
-The extension provides two commands to auto-configure the MCP settings:
+## 💬 Usage Examples
 
-**For VS Code Users:**
-- Command: `AI Debugger: Configure VS Code MCP`
-- Configures: `~/.config/Code/User/mcp.json` (Linux), `~/Library/Application Support/Code/User/mcp.json` (macOS), `%APPDATA%\Code\User\mcp.json` (Windows)
+**Basic Debugging:**
+> "Debug the file `app.py` and set a breakpoint at line 42"
 
-**For Cursor IDE Users:**
-- Command: `AI Debugger: Configure Cursor MCP`
-- Configures: `~/.cursor/mcp.json` (Linux), `~/Library/Application Support/Cursor/User/mcp.json` (macOS), `%APPDATA%\Cursor\User\mcp.json` (Windows)
+**Step Through Code:**
+> "Step through the `calculate_total` function and show me the variables"
 
-**How to use:**
-1. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-2. Search for the appropriate command based on your IDE
-3. Click to auto-configure your MCP settings (one-click setup!)
-4. Restart your AI assistant to use the debugger
+**Inspect State:**
+> "What's the current call stack? Show me the value of `user`"
 
-## Usage
+**Remote Debugging:**
+> "Attach to my FastAPI server running on port 5678 and debug the `/api/users` endpoint"
 
-1. **Extension activates automatically** when VS Code starts
-2. **MCP server starts** on port 3100
-3. **AI connects** via HTTP JSON-RPC
-4. **Debug any file** by asking your AI assistant:
+**Using Configurations:**
+> "Start debugging using my 'FastAPI Debug' configuration from launch.json"
 
-Example prompts:
-```
-"Debug the file app.py and set a breakpoint at line 42"
-"Step through the calculate_total function and show me the variables"
-"What's the current call stack?"
-"Evaluate the expression user.name in the current context"
-"List my debug configurations"
-"Attach to my FastAPI server on port 5678"
-"Start debugging using my 'FastAPI Attach' configuration"
-```
+---
 
-## Use Cases
+## 🎥 Video Examples
 
-### Traditional Debugging
-- Debug any Python/JavaScript/TypeScript file
-- Set breakpoints and step through code
-- Inspect variables and evaluate expressions
+**[GIF/VIDEO: Basic Debugging Workflow]**
+*AI sets breakpoint, steps through code, finds the bug*
 
-### Remote Debugging (NEW!)
-- **FastAPI/Flask**: Attach to running web server, debug API endpoints
-- **Node.js**: Attach to running Node apps with --inspect
-- **Containers**: Use existing launch.json configs with path mappings
-- **Team Configs**: Leverage shared launch.json configurations
+**[GIF/VIDEO: Remote Server Debugging]**
+*AI attaches to FastAPI, tests API endpoint, inspects response*
 
-## Supported Languages
+**[GIF/VIDEO: Production Debugging]**
+*AI debugs containerized app using launch.json configuration*
 
-Automatically detects and supports debugging for:
+---
+
+## 🌍 Supported Languages
+
+Automatically debugs:
 - Python (`.py`)
-- JavaScript/TypeScript (`.js`, `.ts`, `.mjs`)
-- And more through VS Code's debug adapters
+- JavaScript/TypeScript (`.js`, `.ts`, `.jsx`, `.tsx`)
+- And any language with VS Code debug adapter support
 
-## Testing
+---
 
-See [TESTING.md](TESTING.md) for comprehensive testing instructions.
+## ❓ FAQ
 
-Quick test:
-```bash
-curl http://localhost:3100/health
-```
+**Q: Is my code safe?**
+A: Yes. The debugger only reads variables and evaluates safe expressions. No code modification without explicit AI request.
 
-## Technical Details
+**Q: Works with any AI?**
+A: Yes! Works with **VS Code Copilot**, **Cursor AI**, Claude Desktop, ChatGPT, and any AI/LLM that supports MCP protocol.
 
-- **Transport**: HTTP JSON-RPC (simple, testable, reliable)
-- **Port**: 3100 (configurable)
-- **Protocol**: Model Context Protocol 2024-11-05
-- **State Tracking**: Event-driven (stopped/continued events + active stack item changes)
+**Q: What about privacy?**
+A: The server runs locally. All debugging happens on your machine. No data sent anywhere.
 
-## Development
+**Q: Can I use it for production?**
+A: Yes! Remote debugging is perfect for debugging live servers safely.
 
-```bash
-# Install dependencies
-npm install
+---
 
-# Build extension
-npm run build
-
-# Launch development instance
-# Press F5 in VS Code
-
-# The extension will compile and open a new VS Code window
-# Check Debug Console for "MCP server listening on http://localhost:3100"
-```
-
-## Troubleshooting
+## 🐛 Troubleshooting
 
 **Extension not starting?**
 - Check Output → Extension Host for errors
-- Verify port 3100 is available
-
-**Tools not working?**
-- Ensure a debug session is active for inspection tools
-- Check Debug Console for MCP server logs
+- Ensure port 3100 is available
 
 **AI can't connect?**
-- Verify `http://localhost:3100/health` responds
-- Check MCP client configuration
+- Run: `curl http://localhost:3100/health`
+- Verify MCP client configuration
 
-## Contributing
+**Debugging tools not working?**
+- Start a debug session first
+- Check Debug Console for logs
 
-Issues and pull requests welcome!
+---
 
-## License
+## 📖 More Information
 
-MIT
+- [Remote Debugging Guide](REMOTE_DEBUGGING.md)
+- [Testing Guide](TESTING.md)
+- [Known Issues](KNOWN_ISSUES.md)
+
+---
+
+## 📄 License
+
+GPL-3.0-or-later
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+See [LICENSE](LICENSE) file for details.
+
+**Happy debugging! 🚀**

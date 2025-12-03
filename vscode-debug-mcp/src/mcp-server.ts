@@ -1,3 +1,21 @@
+/*
+ * Killer Bug AI Debugger
+ * Copyright (C) 2025 Abhishek (fellowabhi)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 import express from 'express';
 import type { Express, Request, Response } from 'express';
 import { handleSessionTool } from './tools/session';
@@ -73,7 +91,7 @@ export async function startMCPServer() {
                             tools: {}
                         },
                         serverInfo: {
-                            name: 'vscode-debug-mcp',
+                            name: 'killer-bug-ai-debugger',
                             version: '0.1.0'
                         }
                     }
@@ -124,7 +142,7 @@ export async function startMCPServer() {
     app.get('/health', (req: Request, res: Response) => {
         res.json({ 
             status: 'ok', 
-            server: 'vscode-debug-mcp',
+            server: 'killer-bug-ai-debugger',
             version: '0.2.0',
             tools: 17,
             endpoint: '/mcp'
@@ -133,7 +151,7 @@ export async function startMCPServer() {
 
     // Start HTTP server
     httpServer = app.listen(currentPort, () => {
-        console.log(`MCP server listening on http://localhost:${currentPort}`);
+        console.log(`Killer Bug AI Debugger listening on http://localhost:${currentPort}`);
         console.log(`MCP endpoint: POST http://localhost:${currentPort}/mcp`);
         console.log(`Health check: GET http://localhost:${currentPort}/health`);
     });
@@ -146,7 +164,7 @@ function getToolsList() {
     return [
         {
             name: 'debug_start',
-            description: 'Start a debug session for a file',
+            description: 'Start a debug session for a file. WORKFLOW: Call debug_listConfigs first to check for existing launch.json configurations. Prefer debug_startWithConfig when available. Use this only when no suitable configuration exists.',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -159,22 +177,22 @@ function getToolsList() {
         },
         {
             name: 'debug_stop',
-            description: 'Stop the current debug session',
+            description: 'Stop the current debug session. CLEANUP: Remove all breakpoints with debug_listBreakpoints before stopping to ensure clean state.',
             inputSchema: { type: 'object', properties: {} }
         },
         {
             name: 'debug_getStatus',
-            description: 'Get current debug session status',
+            description: 'Get current debug session status (whether paused/running, current line, function, etc.).',
             inputSchema: { type: 'object', properties: {} }
         },
         {
             name: 'debug_listConfigs',
-            description: 'List all debug configurations from launch.json in the workspace',
+            description: 'List all debug configurations from launch.json in the workspace. WORKFLOW: Use this to discover existing debug configurations before using debug_start or debug_attach. Prefer existing configs when available.',
             inputSchema: { type: 'object', properties: {} }
         },
         {
             name: 'debug_startWithConfig',
-            description: 'Start debugging using a named configuration from launch.json',
+            description: 'PREFERRED METHOD: Start debugging using an existing named configuration from launch.json. This is the recommended approach over debug_start or debug_attach. Always call debug_listConfigs first to see available configurations.',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -186,7 +204,7 @@ function getToolsList() {
         },
         {
             name: 'debug_attach',
-            description: 'Attach to a running process for remote debugging (e.g., FastAPI with debugpy listening on a port)',
+            description: 'Attach to a running process for remote debugging (e.g., FastAPI with debugpy listening on a port). FALLBACK ONLY: Use this only when no suitable launch.json configuration exists. Requires the target application to be already running with debugger listening.',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -201,7 +219,7 @@ function getToolsList() {
         },
         {
             name: 'debug_setBreakpoint',
-            description: 'Set a breakpoint at a specific line in a file',
+            description: 'Set a breakpoint at a specific line in a file. IMPORTANT CLEANUP REQUIRED: You MUST track all breakpoints you create and remove them before ending the debug session using debug_removeBreakpoint. Failure to clean up will cause unexpected breaks in future sessions. NOTE: You may keep breakpoints if you plan to reuse them across multiple debug sessions for the same investigation.',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -214,7 +232,7 @@ function getToolsList() {
         },
         {
             name: 'debug_removeBreakpoint',
-            description: 'Remove a breakpoint from a specific line',
+            description: 'Remove a breakpoint from a specific line. CRITICAL: Always remove breakpoints you set during debugging before ending the final session. This is mandatory for clean state management. Use debug_listBreakpoints to verify all breakpoints that you added are removed before ending session. NOTE: You may temporarily keep breakpoints between related debug sessions if continuing the same investigation.',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -226,42 +244,42 @@ function getToolsList() {
         },
         {
             name: 'debug_listBreakpoints',
-            description: 'List all breakpoints',
+            description: 'List all breakpoints. Use this to track which breakpoints are active and verify cleanup.',
             inputSchema: { type: 'object', properties: {} }
         },
         {
             name: 'debug_continue',
-            description: 'Continue execution until next breakpoint',
+            description: 'Continue execution until next breakpoint. PREREQUISITE: Debugger must be paused (at breakpoint or after debug_pause). Will fail if debugger is running. IMPORTANT PLANNING: Before continuing, ensure you have breakpoints strategically placed if you want to catch the intended code path. Else you might miss your debugging target and has to retrigger it.',
             inputSchema: { type: 'object', properties: {} }
         },
         {
             name: 'debug_stepOver',
-            description: 'Step over the current line',
+            description: 'Step over the current line (execute without entering functions). PREREQUISITE: Debugger must be paused.',
             inputSchema: { type: 'object', properties: {} }
         },
         {
             name: 'debug_stepInto',
-            description: 'Step into function call on current line',
+            description: 'Step into function call on current line. PREREQUISITE: Debugger must be paused and current line must contain a function call. IMPORTANT: Only step into if you want to debug that specific function. Stepping into system/library functions will lose you in framework code. Instead: set breakpoints at your target locations and use debug_continue, or use debug_stepOver to skip uninteresting functions.',
             inputSchema: { type: 'object', properties: {} }
         },
         {
             name: 'debug_stepOut',
-            description: 'Step out of current function',
+            description: 'Step out of current function (resume until function returns). PREREQUISITE: Debugger must be paused inside a function. Use this to escape deep call stacks. The execution will continue until the current function returns, then pause at the return location.',
             inputSchema: { type: 'object', properties: {} }
         },
         {
             name: 'debug_pause',
-            description: 'Pause execution',
+            description: 'Pause execution at current location. Use when debugger is running and you need to stop it to inspect state. Does not require breakpoints. WORKFLOW: Use this only when: 1) Code is actively running and you need to inspect mid-execution, 2) You want to interrupt a long-running operation, 3) You\'re debugging infinite loops. For targeted debugging, prefer setting breakpoints instead of relying on pause.',
             inputSchema: { type: 'object', properties: {} }
         },
         {
             name: 'debug_getStackTrace',
-            description: 'Get the current call stack with function names, file paths, and line numbers',
+            description: 'Get the current call stack with function names, file paths, and line numbers. PREREQUISITE: Debugger must be paused. Returns stack frames showing the execution path. WORKFLOW: Always call this BEFORE debug_getVariables to identify which frame you want to inspect. Returns frameId values needed for other inspection tools.',
             inputSchema: { type: 'object', properties: {} }
         },
         {
             name: 'debug_getVariables',
-            description: 'Get variables in the current scope or specified frame',
+            description: 'Get variables in the current scope or specified frame. PREREQUISITE: Debugger must be paused. WORKFLOW: Call debug_getStackTrace first to get available frameIds. Specify a frameId to inspect different stack levels. Default scope shows local variables; use scope filter for "global" or "static" if available.',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -272,7 +290,7 @@ function getToolsList() {
         },
         {
             name: 'debug_evaluate',
-            description: 'Evaluate an expression in the current debug context',
+            description: 'Evaluate an expression in the current debug context (e.g., variable values, function results). PREREQUISITE: Debugger must be paused. WORKFLOW: Use this cleverly to discover extra context. CRITICAL: Only evaluate SAFE READ operations. If your expression might have side effects (call functions that modify state, access external APIs, etc.), you MUST ask the user for permission BEFORE evaluating.',
             inputSchema: {
                 type: 'object',
                 properties: {

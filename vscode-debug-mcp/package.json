@@ -1,9 +1,11 @@
 {
-  "name": "vscode-debug-mcp",
-  "displayName": "Killer Bug",
-  "description": "Advanced debugging tools for VS Code (Killer Bug)",
+  "name": "killer-bug-ai-debugger",
+  "displayName": "Killer Bug AI Debugger",
+  "description": "AI-powered debugging via Model Context Protocol - Complete control over VS Code debugger for AI assistants",
   "version": "0.1.0",
   "publisher": "fellowabhi",
+  "license": "GPL-3.0-or-later",
+  "icon": "killer-bug-icon-small.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/fellowabhi/Killer-bug"
@@ -22,18 +24,18 @@
   "contributes": {
     "commands": [
       {
-        "command": "aiDebugger.showOutput",
-        "title": "AI Debugger: Show Output"
+        "command": "killerBug.showOutput",
+        "title": "Killer Bug: Show Output"
       },
       {
-        "command": "aiDebugger.configure",
-        "title": "AI Debugger: Configure VS Code MCP",
-        "description": "Add AI Debugger MCP server to VS Code configuration (one-click setup)"
+        "command": "killerBug.configure",
+        "title": "Killer Bug: Configure AI Debugger",
+        "description": "Configure Killer Bug AI Debugger for VS Code or Cursor (one-click setup)"
       },
       {
-        "command": "aiDebugger.configureCursor",
-        "title": "AI Debugger: Configure Cursor MCP",
-        "description": "Add AI Debugger MCP server to Cursor IDE configuration (one-click setup)"
+        "command": "killerBug.resetPortRegistry",
+        "title": "Killer Bug: Reset Port Registry",
+        "description": "Clear all tracked ports in the registry (useful if stale entries exist)"
       }
     ]
   },
