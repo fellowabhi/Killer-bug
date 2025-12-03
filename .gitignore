@@ -1,1 +1,28 @@
 .vscode/mcp.json
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.vsix
+
+# IDE
+.vscode/
+.vscode-test/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.temp
