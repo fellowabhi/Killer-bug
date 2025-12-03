@@ -1,6 +1,21 @@
-# Known Issue: Async Server "Paused" State
+# Known Issues
 
-## 🐛 The Issue
+## No Critical Issues! ✅
+
+**All major bugs have been resolved in v0.1.0:**
+- ✅ Cursor IDE detection working correctly
+- ✅ Configuration persistence fixed
+- ✅ Port registry management implemented
+- ✅ Status bar state handling corrected
+- ✅ MCP tool descriptions enhanced for AI guidance
+
+---
+
+## Known Limitation: Async Server "Paused" State
+
+> **Note:** This is a limitation of the Debug Adapter Protocol (DAP), not a bug in Killer Bug. The same behavior occurs in all DAP-based debuggers.
+
+### 🐛 The Behavior
 
 When debugging async servers (FastAPI, Flask, Express, etc.) with remote attach:
 
