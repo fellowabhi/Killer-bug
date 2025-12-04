@@ -4,12 +4,16 @@
 
 An MCP-powered debugging extension that gives **VS Code Copilot**, **Cursor AI**, Claude Desktop, ChatGPT, and other AI assistants complete control over VS Code's debugger. AI can now set breakpoints, step through code, inspect variables, and find bugs—all without you touching the keyboard.
 
+## 🎬 See It In Action
+
+![Killer Bug AI Debugger Demo](assets/Killer-bug-showofff-I-mean-demo.gif)
+
 ## ⚡ Quick Start
 
 1. **Install** the extension from VS Code marketplace
 2. **Configure** (for each project):
    - Extension shows "Configuration Required" popup → Click it
-   - Or run: `Killer Bug: Configure AI Debugger` from Command Palette
+   - Or press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac) to open Command Palette, then run: `Killer Bug: Configure AI Debugger`
    - Select your IDE (VS Code or Cursor)
 3. **Connect** your AI:
    - **Cursor**: Go to Settings → Enable MCP Server "killer-bug-<your-project-name>"
