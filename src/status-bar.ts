@@ -64,12 +64,11 @@ export class StatusBarManager {
     private updateStatusBar() {
         if (!debugState.isActive()) {
             // No active session - but don't update if custom status is active
-            // (let custom status methods handle idle/start states)
+            // (let custom status methods handle all user-facing states)
             if (!this.customStatusActive) {
-                this.statusBarItem.text = '$(debug-disconnect) Killer Bug: Idle';
-                this.statusBarItem.backgroundColor = undefined;
-                this.statusBarItem.command = 'killerBug.showOutput';
-                this.statusBarItem.tooltip = 'Killer Bug AI Debugger - Idle\nClick to show output';
+                // This shouldn't normally be reached due to customStatusActive flag
+                // but keep as safety fallback
+                return;
             }
         } else if (debugState.isPaused && !debugState.isInEventLoop) {
             // Paused at breakpoint (but NOT in event loop)
