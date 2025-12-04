@@ -63,10 +63,14 @@ export class StatusBarManager {
      */
     private updateStatusBar() {
         if (!debugState.isActive()) {
-            // No active session
-            this.statusBarItem.text = '$(debug-disconnect) Killer Bug: Ready';
-            this.statusBarItem.backgroundColor = undefined;
-            this.statusBarItem.tooltip = 'Killer Bug AI Debugger - No active session\nClick to show output';
+            // No active session - but don't update if custom status is active
+            // (let custom status methods handle idle/start states)
+            if (!this.customStatusActive) {
+                this.statusBarItem.text = '$(debug-disconnect) Killer Bug: Idle';
+                this.statusBarItem.backgroundColor = undefined;
+                this.statusBarItem.command = 'killerBug.showOutput';
+                this.statusBarItem.tooltip = 'Killer Bug AI Debugger - Idle\nClick to show output';
+            }
         } else if (debugState.isPaused && !debugState.isInEventLoop) {
             // Paused at breakpoint (but NOT in event loop)
             const location = debugState.currentLine 
@@ -76,7 +80,9 @@ export class StatusBarManager {
             
             this.statusBarItem.text = `$(debug-pause) Killer Bug: Paused at ${location}`;
             this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+            this.statusBarItem.command = 'killerBug.showOutput';
             this.statusBarItem.tooltip = `Killer Bug AI Debugger - Paused\nFunction: ${func}\nLine: ${debugState.currentLine || 'unknown'}\nClick to show output`;
+            this.customStatusActive = false;
         } else {
             // Running (or in event loop)
             const statusText = debugState.isInEventLoop 
@@ -85,9 +91,11 @@ export class StatusBarManager {
             
             this.statusBarItem.text = `$(debug-alt) Killer Bug: ${statusText}`;
             this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
+            this.statusBarItem.command = 'killerBug.showOutput';
             this.statusBarItem.tooltip = debugState.isInEventLoop
                 ? 'Killer Bug AI Debugger - Running in event loop\nWaiting for requests\nClick to show output'
                 : 'Killer Bug AI Debugger - Running\nClick to show output';
+            this.customStatusActive = false;
         }
     }
 
@@ -149,10 +157,33 @@ export class StatusBarManager {
      * Show configured but not running
      */
     showConfiguredNotRunning(port: number) {
-        this.statusBarItem.text = `$(debug-disconnect) Killer Bug: Configured (port ${port}, not running)`;
+        this.statusBarItem.text = `$(debug-disconnect) Killer Bug: Ready (Click to Start)`;
         this.statusBarItem.backgroundColor = undefined;
-        this.statusBarItem.tooltip = `Killer Bug AI Debugger - Configured on port ${port} but MCP server not running\nRestart VS Code or run extension\nClick to show output`;
+        this.statusBarItem.command = 'killerBug.start';
+        this.statusBarItem.tooltip = `Killer Bug AI Debugger - Configured on port ${port}\nClick to start the MCP server`;
         this.customStatusActive = true;
+    }
+
+    /**
+     * Show not configured - ready for setup
+     */
+    showNotConfigured() {
+        this.statusBarItem.text = `$(circle-slash) Killer Bug: Not Configured`;
+        this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+        this.statusBarItem.command = 'killerBug.start';
+        this.statusBarItem.tooltip = `Killer Bug AI Debugger - Click to configure and start`;
+        this.customStatusActive = true;
+    }
+
+    /**
+     * Show extension ready (no workspace open)
+     */
+    showExtensionReady() {
+        this.statusBarItem.text = `$(debug-disconnect) Killer Bug: Ready`;
+        this.statusBarItem.backgroundColor = undefined;
+        this.statusBarItem.command = 'killerBug.showOutput';
+        this.statusBarItem.tooltip = `Killer Bug AI Debugger - Open a project folder to get started`;
+        this.customStatusActive = false;
     }
 
     /**

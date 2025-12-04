@@ -24,18 +24,29 @@ import { PortRegistry } from './port-registry';
 
 /**
  * Extension activation entry point
+ * 
+ * NOTE: Extension is now "lazy" - it activates but does NOT auto-start the MCP server.
+ * Users must explicitly click the status bar button or run the start command.
+ * This prevents the extension from being annoying for projects that don't use debugging.
  */
 export function activate(context: vscode.ExtensionContext) {
     console.log('Killer Bug AI Debugger extension is activating...');
 
-    // Initialize status bar
+    // Initialize status bar in idle/start mode
     statusBarManager; // Initialize singleton
 
-    // Register command to show output
+    // Register command to show output (used when server is running)
     const showOutputCommand = vscode.commands.registerCommand('killerBug.showOutput', () => {
         vscode.window.showInformationMessage('Killer Bug AI Debugger is active. Check Extension Host output for logs.');
     });
     context.subscriptions.push(showOutputCommand);
+
+    // Register START command - this is the main entry point for users now
+    const startCommand = vscode.commands.registerCommand('killerBug.start', async () => {
+        console.log('[Killer Bug] Start command invoked');
+        await handleStartServer(context);
+    });
+    context.subscriptions.push(startCommand);
 
     // Register configure command for VS Code (project-level)
     const configureCommand = vscode.commands.registerCommand('killerBug.configure', async () => {
@@ -56,9 +67,6 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
     context.subscriptions.push(configureCommand);
-
-    // Remove the separate Cursor configure command - now integrated above
-    // (keeping old code removed)
 
     // Register reset port registry command
     const resetPortRegistryCommand = vscode.commands.registerCommand('killerBug.resetPortRegistry', async () => {
@@ -84,7 +92,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(resetPortRegistryCommand);
 
-    // Check if project is configured before starting MCP server
+    // Initialize status bar to show "Start" state (not auto-running)
     try {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         
@@ -102,41 +110,89 @@ export function activate(context: vscode.ExtensionContext) {
             const status = configManager.getStatus();
             
             if (status.configured && status.port) {
-                // Project is configured - start MCP server with the configured port
-                console.log(`[Killer Bug] Loading project MCP port: ${status.port}`);
-                setMCPPort(status.port);
-                startMCPServer();
-                console.log(`Killer Bug MCP server started automatically on port ${getMCPPort()}`);
-                statusBarManager.showRunning(getMCPPort());
+                // Project is configured - show "configured but not running, click to start" state
+                console.log(`[Killer Bug] Project configured on port ${status.port} (MCP server not auto-starting)`);
+                statusBarManager.showConfiguredNotRunning(status.port);
             } else {
-                // Project is open but NOT configured
+                // Project is open but NOT configured - show "not configured" state
                 console.log('[Killer Bug] Project not configured for MCP');
-                statusBarManager.showConfigurationDisabled();
-                vscode.window.showInformationMessage(
-                    '⚠️ Killer Bug AI Debugger is not configured for this project. Please run "Killer Bug: Configure AI Debugger" command to enable debugging.',
-                    'Configure Now',
-                    'Later'
-                ).then(selection => {
-                    if (selection === 'Configure Now') {
-                        vscode.commands.executeCommand('killerBug.configure');
-                    }
-                });
+                statusBarManager.showNotConfigured();
             }
         } else {
-            // No project open - start in idle mode
-            console.log('[Killer Bug] No workspace folder open - MCP server in idle mode');
+            // No project open
+            console.log('[Killer Bug] No workspace folder open');
+            statusBarManager.showExtensionReady();
         }
     } catch (error) {
         console.error('Error during extension initialization:', error);
-        statusBarManager.showError('Extension initialization failed');
+        // Show error but don't crash
+        console.log('[Killer Bug] Continuing with safe state after initialization error');
     }
 
-    console.log('Killer Bug AI Debugger extension activated');
+    console.log('Killer Bug AI Debugger extension activated (lazy mode - click status bar to start)');
 }
 
 /**
- * Handle MCP configuration for VS Code or Cursor
+ * Handle the START command - starts MCP server after checking configuration
+ * Shows configuration popup only if project is not yet configured
  */
+async function handleStartServer(context: vscode.ExtensionContext) {
+    console.log('[Killer Bug] Handling start server request');
+    
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+        vscode.window.showErrorMessage('Please open a project folder to start Killer Bug AI Debugger');
+        return;
+    }
+
+    const projectRoot = workspaceFolders[0].uri.fsPath;
+    const projectName = workspaceFolders[0].name;
+    
+    // Detect which IDE is running (VS Code vs Cursor)
+    const appName = vscode.env.appName;
+    const isCursor = appName.toLowerCase().includes('cursor');
+    const ideType = isCursor ? 'cursor' : 'vscode';
+    
+    const configManager = new ProjectMCPConfigManager(projectRoot, ideType);
+    const status = configManager.getStatus();
+    
+    if (!status.configured || !status.port) {
+        // Project not configured - show configuration popup with option to continue
+        console.log('[Killer Bug] Project not configured - showing configuration dialog');
+        
+        const choice = await vscode.window.showInformationMessage(
+            '⚠️ Killer Bug AI Debugger is not configured for this project.\n\nWould you like to configure it now?',
+            'Configure Now',
+            'Cancel'
+        );
+        
+        if (choice === 'Configure Now') {
+            // Run configuration
+            await handleConfigureCommand(context, ideType);
+        } else {
+            console.log('[Killer Bug] User cancelled configuration');
+            vscode.window.showInformationMessage('Run "Killer Bug: Configure AI Debugger" command when ready to set up debugging.');
+        }
+        return;
+    }
+    
+    // Project is configured - start the MCP server
+    try {
+        console.log(`[Killer Bug] Starting MCP server on configured port ${status.port}`);
+        setMCPPort(status.port);
+        startMCPServer();
+        
+        console.log(`[Killer Bug] MCP server started successfully on port ${getMCPPort()}`);
+        statusBarManager.showRunning(getMCPPort());
+        
+        // Show brief confirmation
+        vscode.window.showInformationMessage(`✓ Killer Bug AI Debugger started on port ${getMCPPort()}`, { modal: false });
+    } catch (error) {
+        console.error('[Killer Bug] Failed to start MCP server:', error);
+        statusBarManager.showError('Failed to start MCP server');
+        vscode.window.showErrorMessage(`Failed to start Killer Bug MCP server: ${error}`);
+    }
+}
 async function handleConfigureCommand(context: vscode.ExtensionContext, ideType: 'vscode' | 'cursor') {
     console.log(`[Killer Bug] Configure ${ideType} command called`);
     

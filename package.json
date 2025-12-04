@@ -2,7 +2,7 @@
   "name": "killer-bug-ai-debugger",
   "displayName": "Killer Bug AI Debugger",
   "description": "AI-powered debugging via Model Context Protocol - Complete control over VS Code debugger for AI assistants",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "publisher": "fellowabhi",
   "license": "GPL-3.0-or-later",
   "icon": "assets/killer-bug-icon-small.png",
@@ -23,6 +23,11 @@
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
+      {
+        "command": "killerBug.start",
+        "title": "Killer Bug: Start AI Debugger",
+        "description": "Start the Killer Bug MCP server for this project (will configure if needed)"
+      },
       {
         "command": "killerBug.showOutput",
         "title": "Killer Bug: Show Output"

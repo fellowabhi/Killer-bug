@@ -11,16 +11,20 @@ An MCP-powered debugging extension that gives **VS Code Copilot**, **Cursor AI**
 ## ⚡ Quick Start
 
 1. **Install** the extension from VS Code marketplace
-2. **Configure** (for each project):
-   - Extension shows "Configuration Required" popup → Click it
-   - Or press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac) to open Command Palette, then run: `Killer Bug: Configure AI Debugger`
-   - Select your IDE (VS Code or Cursor)
-3. **Connect** your AI:
+2. **Start the Debugger** (for each project):
+   - Click the **"Killer Bug: Ready (Click to Start)"** button in the status bar (bottom left)
+   - Or press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac) and run: `Killer Bug: Start AI Debugger`
+3. **Configure** (first time only):
+   - If not already configured, select your IDE (VS Code or Cursor)
+   - Choose the port for the MCP server (usually 3100)
+4. **Connect** your AI:
    - **Cursor**: Go to Settings → Enable MCP Server "killer-bug-<your-project-name>"
    - **VS Code**: Open `mcp.json` → Click "Start" icon on top of "killer-bug-<your-project-name>" in servers
-4. **Start debugging**: Chat with your AI: *"Debug this code and find the bug"*
+5. **Start debugging**: Chat with your AI: *"Debug this code and find the bug"*
 
 That's it! Your AI debugger is ready.
+
+> **💡 Tip**: The extension won't auto-start when you open a project. This keeps things non-intrusive if you're not using debugging. Just click the status bar button when you need it!
 
 ---
 
@@ -108,11 +112,16 @@ npm run build
 
 ### Configure for Your AI
 
-**One-Click Setup:**
-1. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-2. Run: `Killer Bug: Configure AI Debugger`
-3. Select your IDE (VS Code or Cursor)
-4. Done! Restart your AI assistant
+**Starting the Debugger:**
+1. Click **"Killer Bug: Ready (Click to Start)"** in the status bar, OR
+2. Press `Ctrl+Shift+P` / `Cmd+Shift+P` and run: `Killer Bug: Start AI Debugger`
+3. If not configured yet, select your IDE (VS Code or Cursor) and choose a port
+4. Done! The MCP server is now running
+
+**Connecting your AI client:**
+- Go to your AI client's MCP settings
+- Add the Killer Bug server (if not auto-detected)
+- Start debugging!
 
 Or manual configuration for your MCP client:
 
