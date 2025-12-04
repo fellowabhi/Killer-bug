@@ -92,36 +92,27 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(resetPortRegistryCommand);
 
-    // Initialize status bar to show "Start" state (not auto-running)
+    // Initialize status bar to always show "Ready" - silent mode until user clicks
+    // Don't check or warn about configuration - user will see config dialog only when clicking
     try {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         
         if (workspaceFolders && workspaceFolders.length > 0) {
+            // Project is open - show simple "Ready" state (silent, no warnings)
             const projectRoot = workspaceFolders[0].uri.fsPath;
-            
-            // Detect which IDE is running (VS Code vs Cursor)
             const appName = vscode.env.appName;
             const isCursor = appName.toLowerCase().includes('cursor');
             const ideType = isCursor ? 'cursor' : 'vscode';
             
             console.log(`[Killer Bug] Running in: ${appName} (detected as ${ideType})`);
+            console.log('[Killer Bug] Status bar in silent ready mode - waiting for user click');
             
-            const configManager = new ProjectMCPConfigManager(projectRoot, ideType);
-            const status = configManager.getStatus();
-            
-            if (status.configured && status.port) {
-                // Project is configured - show "configured but not running, click to start" state
-                console.log(`[Killer Bug] Project configured on port ${status.port} (MCP server not auto-starting)`);
-                statusBarManager.showConfiguredNotRunning(status.port);
-            } else {
-                // Project is open but NOT configured - show "not configured" state
-                console.log('[Killer Bug] Project not configured for MCP');
-                statusBarManager.showNotConfigured();
-            }
+            // Always show ready state - no warnings
+            statusBarManager.showReady();
         } else {
             // No project open
             console.log('[Killer Bug] No workspace folder open');
-            statusBarManager.showExtensionReady();
+            statusBarManager.showReady();
         }
     } catch (error) {
         console.error('Error during extension initialization:', error);

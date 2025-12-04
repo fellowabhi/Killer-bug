@@ -155,6 +155,17 @@ export class StatusBarManager {
     }
 
     /**
+     * Show simple ready state (silent, no warnings) - used for initial activation
+     */
+    showReady() {
+        this.statusBarItem.text = `$(debug-disconnect) Killer Bug: Ready`;
+        this.statusBarItem.backgroundColor = undefined;
+        this.statusBarItem.command = 'killerBug.start';
+        this.statusBarItem.tooltip = `Killer Bug AI Debugger\nClick to start debugging`;
+        this.customStatusActive = true;
+    }
+
+    /**
      * Show configured but not running
      */
     showConfiguredNotRunning(port: number) {
