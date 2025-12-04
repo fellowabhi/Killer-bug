@@ -17,7 +17,7 @@
  */
 
 import * as vscode from 'vscode';
-import { startMCPServer, stopMCPServer, setMCPPort, getMCPPort } from './mcp-server';
+import { startMCPServer, stopMCPServer, setMCPPort, getMCPPort, isServerRunning } from './mcp-server';
 import { statusBarManager } from './status-bar';
 import { ProjectMCPConfigManager } from './project-mcp-config';
 import { PortRegistry } from './port-registry';
@@ -41,12 +41,12 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(showOutputCommand);
 
-    // Register START command - this is the main entry point for users now
-    const startCommand = vscode.commands.registerCommand('killerBug.start', async () => {
-        console.log('[Killer Bug] Start command invoked');
-        await handleStartServer(context);
+    // Register TOGGLE command - this is the main entry point for users now (start/stop)
+    const toggleCommand = vscode.commands.registerCommand('killerBug.start', async () => {
+        console.log('[Killer Bug] Toggle command invoked');
+        await handleToggleServer(context);
     });
-    context.subscriptions.push(startCommand);
+    context.subscriptions.push(toggleCommand);
 
     // Register configure command for VS Code (project-level)
     const configureCommand = vscode.commands.registerCommand('killerBug.configure', async () => {
@@ -133,12 +133,23 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 /**
- * Handle the START command - starts MCP server after checking configuration
+ * Handle the TOGGLE command - starts or stops MCP server based on current state
  * Shows configuration popup only if project is not yet configured
  */
-async function handleStartServer(context: vscode.ExtensionContext) {
-    console.log('[Killer Bug] Handling start server request');
+async function handleToggleServer(context: vscode.ExtensionContext) {
+    console.log('[Killer Bug] Handling toggle server request');
     
+    // Check if server is already running
+    if (isServerRunning()) {
+        // Server is running - stop it
+        console.log('[Killer Bug] Server is running, stopping...');
+        stopMCPServer();
+        statusBarManager.showConfiguredNotRunning(getMCPPort());
+        vscode.window.showInformationMessage('✓ Killer Bug AI Debugger stopped', { modal: false });
+        return;
+    }
+    
+    // Server is not running - start it
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) {
         vscode.window.showErrorMessage('Please open a project folder to start Killer Bug AI Debugger');

@@ -22,10 +22,10 @@
             "type": "extensionHost",
             "request": "launch",
             "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/vscode-debug-mcp"
+                "--extensionDevelopmentPath=${workspaceFolder}"
             ],
             "outFiles": [
-                "${workspaceFolder}/vscode-debug-mcp/dist/**/*.js"
+                "${workspaceFolder}/dist/**/*.js"
             ]
         }
     ]

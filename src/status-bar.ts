@@ -147,9 +147,10 @@ export class StatusBarManager {
      * Show running with port info
      */
     showRunning(port: number) {
-        this.statusBarItem.text = `$(debug-alt) Killer Bug: Running (port ${port})`;
+        this.statusBarItem.text = `$(debug-alt) Killer Bug: Running (Click to Stop)`;
         this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
-        this.statusBarItem.tooltip = `Killer Bug AI Debugger - Running on port ${port}\nClick to show output`;
+        this.statusBarItem.command = 'killerBug.start';
+        this.statusBarItem.tooltip = `Killer Bug AI Debugger - Running on port ${port}\nClick to STOP the MCP server`;
         this.customStatusActive = true;
     }
 
@@ -160,7 +161,7 @@ export class StatusBarManager {
         this.statusBarItem.text = `$(debug-disconnect) Killer Bug: Ready (Click to Start)`;
         this.statusBarItem.backgroundColor = undefined;
         this.statusBarItem.command = 'killerBug.start';
-        this.statusBarItem.tooltip = `Killer Bug AI Debugger - Configured on port ${port}\nClick to start the MCP server`;
+        this.statusBarItem.tooltip = `Killer Bug AI Debugger - Configured on port ${port}\nClick to START the MCP server`;
         this.customStatusActive = true;
     }
 
@@ -168,10 +169,10 @@ export class StatusBarManager {
      * Show not configured - ready for setup
      */
     showNotConfigured() {
-        this.statusBarItem.text = `$(circle-slash) Killer Bug: Not Configured`;
+        this.statusBarItem.text = `$(circle-slash) Killer Bug: Click to Configure`;
         this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
         this.statusBarItem.command = 'killerBug.start';
-        this.statusBarItem.tooltip = `Killer Bug AI Debugger - Click to configure and start`;
+        this.statusBarItem.tooltip = `Killer Bug AI Debugger - Not configured\nClick to configure and start`;
         this.customStatusActive = true;
     }
 

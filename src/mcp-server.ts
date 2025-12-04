@@ -348,6 +348,13 @@ async function handleToolCall(params: any) {
 }
 
 /**
+ * Check if MCP server is currently running
+ */
+export function isServerRunning(): boolean {
+    return httpServer !== null;
+}
+
+/**
  * Stop the MCP server
  */
 export function stopMCPServer() {
