@@ -6,7 +6,7 @@ An MCP-powered debugging extension that gives **VS Code Copilot**, **Cursor AI**
 
 ## 🎬 See It In Action
 
-![Killer Bug AI Debugger Demo](assets/Killer-bug-showofff-I-mean-demo.gif)
+![Killer Bug AI Debugger Demo](https://raw.githubusercontent.com/fellowabhi/Killer-bug/main/assets/Killer-bug-showofff-I-mean-demo.gif)
 
 ## ⚡ Quick Start
 
