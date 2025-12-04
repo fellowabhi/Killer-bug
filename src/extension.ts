@@ -159,8 +159,11 @@ async function handleToggleServer(context: vscode.ExtensionContext) {
     const status = configManager.getStatus();
     
     if (!status.configured || !status.port) {
-        // Project not configured - show configuration popup with option to continue
+        // Project not configured - show configuration required status
         console.log('[Killer Bug] Project not configured - showing configuration dialog');
+        
+        // Briefly show configuration required state
+        statusBarManager.showConfigurationRequired();
         
         const choice = await vscode.window.showInformationMessage(
             '⚠️ Killer Bug AI Debugger is not configured for this project.\n\nWould you like to configure it now?',
@@ -173,6 +176,7 @@ async function handleToggleServer(context: vscode.ExtensionContext) {
             await handleConfigureCommand(context, ideType);
         } else {
             console.log('[Killer Bug] User cancelled configuration');
+            statusBarManager.showReady();
             vscode.window.showInformationMessage('Run "Killer Bug: Configure AI Debugger" command when ready to set up debugging.');
         }
         return;

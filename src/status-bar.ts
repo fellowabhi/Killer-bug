@@ -147,10 +147,10 @@ export class StatusBarManager {
      * Show running with port info
      */
     showRunning(port: number) {
-        this.statusBarItem.text = `$(debug-alt) Killer Bug: Running (Click to Stop)`;
+        this.statusBarItem.text = `$(debug-alt) Killer Bug: Ready to Connect (Click to Stop)`;
         this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
         this.statusBarItem.command = 'killerBug.start';
-        this.statusBarItem.tooltip = `Killer Bug AI Debugger - Running on port ${port}\nClick to STOP the MCP server`;
+        this.statusBarItem.tooltip = `Killer Bug AI Debugger - Running on port ${port}\nWaiting for MCP client to connect\nClick to STOP the server`;
         this.customStatusActive = true;
     }
 
@@ -158,10 +158,10 @@ export class StatusBarManager {
      * Show simple ready state (silent, no warnings) - used for initial activation
      */
     showReady() {
-        this.statusBarItem.text = `$(debug-disconnect) Killer Bug: Ready`;
+        this.statusBarItem.text = `$(debug-disconnect) Killer Bug: Ready - Click to Start`;
         this.statusBarItem.backgroundColor = undefined;
         this.statusBarItem.command = 'killerBug.start';
-        this.statusBarItem.tooltip = `Killer Bug AI Debugger\nClick to start debugging`;
+        this.statusBarItem.tooltip = `Killer Bug AI Debugger\nClick to start the MCP server`;
         this.customStatusActive = true;
     }
 
@@ -169,10 +169,21 @@ export class StatusBarManager {
      * Show configured but not running
      */
     showConfiguredNotRunning(port: number) {
-        this.statusBarItem.text = `$(debug-disconnect) Killer Bug: Ready (Click to Start)`;
+        this.statusBarItem.text = `$(debug-disconnect) Killer Bug: Ready - Click to Start`;
         this.statusBarItem.backgroundColor = undefined;
         this.statusBarItem.command = 'killerBug.start';
-        this.statusBarItem.tooltip = `Killer Bug AI Debugger - Configured on port ${port}\nClick to START the MCP server`;
+        this.statusBarItem.tooltip = `Killer Bug AI Debugger - Configured on port ${port}\nClick to START the server`;
+        this.customStatusActive = true;
+    }
+
+    /**
+     * Show configuration required - only shown when user clicks
+     */
+    showConfigurationRequired() {
+        this.statusBarItem.text = `$(circle-slash) Killer Bug: Configuration Required`;
+        this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+        this.statusBarItem.command = 'killerBug.start';
+        this.statusBarItem.tooltip = `Killer Bug AI Debugger - Configuration required\nClick to configure and start`;
         this.customStatusActive = true;
     }
 
@@ -180,7 +191,7 @@ export class StatusBarManager {
      * Show not configured - ready for setup
      */
     showNotConfigured() {
-        this.statusBarItem.text = `$(circle-slash) Killer Bug: Click to Configure`;
+        this.statusBarItem.text = `$(circle-slash) Killer Bug: Configuration Required`;
         this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
         this.statusBarItem.command = 'killerBug.start';
         this.statusBarItem.tooltip = `Killer Bug AI Debugger - Not configured\nClick to configure and start`;
@@ -191,7 +202,7 @@ export class StatusBarManager {
      * Show extension ready (no workspace open)
      */
     showExtensionReady() {
-        this.statusBarItem.text = `$(debug-disconnect) Killer Bug: Ready`;
+        this.statusBarItem.text = `$(debug-disconnect) Killer Bug: Ready - Click to Start`;
         this.statusBarItem.backgroundColor = undefined;
         this.statusBarItem.command = 'killerBug.showOutput';
         this.statusBarItem.tooltip = `Killer Bug AI Debugger - Open a project folder to get started`;
