@@ -166,20 +166,7 @@ Or manual configuration for your MCP client:
 
 ---
 
-## 🎥 Video Examples
-
-**[GIF/VIDEO: Basic Debugging Workflow]**
-*AI sets breakpoint, steps through code, finds the bug*
-
-**[GIF/VIDEO: Remote Server Debugging]**
-*AI attaches to FastAPI, tests API endpoint, inspects response*
-
-**[GIF/VIDEO: Production Debugging]**
-*AI debugs containerized app using launch.json configuration*
-
----
-
-## 🌍 Supported Languages
+##  Supported Languages
 
 Automatically debugs:
 - Python (`.py`)
