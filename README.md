@@ -219,12 +219,35 @@ A: Yes! Remote debugging is perfect for debugging live servers safely.
 
 ---
 
-## 📄 License
+## � Contributing
 
-GPL-3.0-or-later
+**This project is open source and we'd love your help!**
+
+Have ideas for new features? Found a bug? Want to improve the code?
+
+1. **Fork the repository** - https://github.com/fellowabhi/Killer-bug
+2. **Create a feature branch** - `git checkout -b feature/your-feature`
+3. **Make your changes** and test thoroughly
+4. **Submit a Pull Request** - We review all PRs and love community contributions!
+
+All contributions are welcome, from bug fixes to new debugging features to documentation improvements.
+
+---
+
+## �📄 License & Open Source
+
+**GPL-3.0-or-later** - Free and Open Source Software
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-See [LICENSE](LICENSE) file for details.
+**What this means:**
+- ✅ Source code is **publicly available** on GitHub
+- ✅ You can **modify and redistribute** it
+- ✅ Any modifications must also be open source
+- ✅ No warranty, but completely transparent
+
+See [LICENSE](LICENSE) file for full details.
+
+**Source Code:** https://github.com/fellowabhi/Killer-bug
 
 **Happy debugging! 🚀**
