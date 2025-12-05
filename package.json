@@ -1,6 +1,6 @@
 {
   "name": "killer-bug-ai-debugger",
-  "displayName": "Killer Bug AI Debugger",
+  "displayName": "Killer Bug - Debugger MCP Server",
   "description": "AI-powered debugging via Model Context Protocol - Complete control over VS Code debugger for AI assistants",
   "version": "0.1.2",
   "publisher": "fellowabhi",
