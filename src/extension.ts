@@ -397,5 +397,22 @@ async function handleConfigureCommand(context: vscode.ExtensionContext, ideType:
 export function deactivate() {
     statusBarManager.dispose();
     stopMCPServer();
+    
+    // Clean up port registry on deactivation
+    // Note: This only removes the file when extension is disabled/uninstalled
+    const fs = require('fs');
+    const path = require('path');
+    const os = require('os');
+    
+    const registryPath = path.join(os.homedir(), '.killer-bug-ports.json');
+    try {
+        if (fs.existsSync(registryPath)) {
+            fs.unlinkSync(registryPath);
+            console.log('[Killer Bug] Cleaned up port registry on deactivation');
+        }
+    } catch (error) {
+        console.warn('[Killer Bug] Warning: Could not clean up port registry:', error);
+    }
+    
     console.log('AI Debug MCP Server extension deactivated');
 }
