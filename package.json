@@ -2,7 +2,7 @@
   "name": "killer-bug-ai-debugger",
   "displayName": "Killer Bug - Debugger MCP Server",
   "description": "AI-powered debugging via Model Context Protocol - Complete control over VS Code debugger for AI assistants",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "fellowabhi",
   "license": "GPL-3.0-or-later",
   "icon": "assets/killer-bug-icon-small.png",
@@ -42,7 +42,18 @@
         "title": "Killer Bug: Reset Port Registry",
         "description": "Clear all tracked ports in the registry (useful if stale entries exist)"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Killer Bug AI Debugger",
+      "properties": {
+        "killerBug.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start the Killer Bug MCP server when opening a project that is already configured",
+          "scope": "resource"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run build",

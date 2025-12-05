@@ -1,0 +1,24 @@
+Let's do these one by one:
+
+1. Watch Variables (High Priority)
+Set up variable watches that auto-update
+
+2.Query breakpoints by file/line/function
+Remove all breakpoints. Update the breakpoint tool to support multiple breakpoints.
+
+4. Call Stack Navigation (Medium Priority)
+Jump to specific frame in call stack
+Return to previous frame
+
+5. REPL/Interactive Console (Medium Priority)
+Execute arbitrary code in debug context using the VS Code API so that it will be visable for the user what the AI is executing and what is the result without opening the MCP tool call details.
+Like "evaluate expression" but use through the VS Code Debug Console UI.
+Useful for quick tests
+
+9. Source Inspection Tools (Medium Priority)
+Get source code around breakpoint
+Useful for understanding code without stepping
+
+10. Exception Handling (High Priority)
+Catch specific exception types by using the special exception breakpoints in VS Code
+Get exception details/stack trace

@@ -48,23 +48,15 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(toggleCommand);
 
-    // Register configure command for VS Code (project-level)
+    // Register configure command - auto-detects IDE
     const configureCommand = vscode.commands.registerCommand('killerBug.configure', async () => {
-        // Ask user which IDE to configure for
-        const ideChoice = await vscode.window.showQuickPick(
-            [
-                { label: 'VS Code', description: 'Configure for VS Code', ide: 'vscode' },
-                { label: 'Cursor', description: 'Configure for Cursor IDE', ide: 'cursor' }
-            ],
-            {
-                placeHolder: 'Select IDE to configure MCP server for',
-                title: 'Choose IDE'
-            }
-        );
-
-        if (ideChoice) {
-            await handleConfigureCommand(context, ideChoice.ide as 'vscode' | 'cursor');
-        }
+        // Auto-detect which IDE we're running in
+        const appName = vscode.env.appName;
+        const isCursor = appName.toLowerCase().includes('cursor');
+        const ideType = isCursor ? 'cursor' : 'vscode';
+        
+        console.log(`[Killer Bug] Auto-detected IDE: ${ideType} (${appName})`);
+        await handleConfigureCommand(context, ideType);
     });
     context.subscriptions.push(configureCommand);
 
@@ -107,8 +99,34 @@ export function activate(context: vscode.ExtensionContext) {
             console.log(`[Killer Bug] Running in: ${appName} (detected as ${ideType})`);
             console.log('[Killer Bug] Status bar in silent ready mode - waiting for user click');
             
-            // Always show ready state - no warnings
-            statusBarManager.showReady();
+            // Check if auto-start is enabled
+            const autoStartEnabled = vscode.workspace.getConfiguration('killerBug').get('autoStart', true);
+            
+            if (autoStartEnabled) {
+                // Check if project is configured
+                const configManager = new ProjectMCPConfigManager(projectRoot, ideType);
+                const status = configManager.getStatus();
+                
+                if (status.configured && status.port) {
+                    // Project is configured and auto-start is enabled - auto-start the server
+                    console.log(`[Killer Bug] Auto-start enabled and project configured on port ${status.port}`);
+                    setMCPPort(status.port);
+                    try {
+                        startMCPServer();
+                        console.log(`[Killer Bug] MCP server auto-started on port ${getMCPPort()}`);
+                        statusBarManager.showRunning(getMCPPort());
+                    } catch (error) {
+                        console.error('[Killer Bug] Failed to auto-start MCP server:', error);
+                        statusBarManager.showReady();
+                    }
+                } else {
+                    // Not configured yet - show ready state
+                    statusBarManager.showReady();
+                }
+            } else {
+                // Auto-start disabled - show ready state
+                statusBarManager.showReady();
+            }
         } else {
             // No project open
             console.log('[Killer Bug] No workspace folder open');
