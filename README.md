@@ -33,7 +33,7 @@ An MCP-powered debugging extension that gives **VS Code Copilot**, **Cursor AI**
 
 That's it! Your AI debugger is ready.
 
-> **💡 Tip**: The extension won't auto-start when you open a project. This keeps things non-intrusive if you're not using debugging. Just click the status bar button when you need it!
+> **💡 Tip**: The extension auto-starts when you open a configured project (can be disabled in settings). For unconfigured projects, just click the status bar button to get started!
 
 ---
 
@@ -144,6 +144,14 @@ Or manual configuration for your MCP client:
   }
 }
 ```
+
+### Settings
+
+**Auto-Start Configuration:**
+- Setting: `killerBug.autoStart` (default: **enabled**)
+- When enabled: MCP server automatically starts when you open a project that's already configured
+- When disabled: Server won't start automatically; click the status bar button to start
+- Configure per-workspace in VS Code Settings under "Killer Bug AI Debugger"
 
 ---
 
