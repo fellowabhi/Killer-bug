@@ -14,12 +14,21 @@ An MCP-powered debugging extension that gives **VS Code Copilot**, **Cursor AI**
 2. **Start the Debugger** (for each project):
    - Click the **"Killer Bug: Ready (Click to Start)"** button in the status bar (bottom left)
    - Or press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac) and run: `Killer Bug: Start AI Debugger`
+   
+   ![Status Bar Button](https://raw.githubusercontent.com/fellowabhi/Killer-bug/main/assets/killer-bug-click-to-start-config-button.png)
+
 3. **Configure** (first time only):
    - If not already configured, select your IDE (VS Code or Cursor)
    - Choose the port for the MCP server (usually 3100)
 4. **Connect** your AI:
-   - **Cursor**: Go to Settings → Enable MCP Server "killer-bug-<your-project-name>"
    - **VS Code**: Open `mcp.json` → Click "Start" icon on top of "killer-bug-<your-project-name>" in servers
+   
+   ![VS Code MCP Server Start](https://raw.githubusercontent.com/fellowabhi/Killer-bug/main/assets/killer-bug-vs-code-mcp-server-start-button.png)
+   
+   - **Cursor**: Go to Settings → Enable MCP Server "killer-bug-<your-project-name>"
+   
+   ![Cursor MCP Server Enable](https://raw.githubusercontent.com/fellowabhi/Killer-bug/main/assets/killer-bug-cursor-mcp-server-start-button.png)
+
 5. **Start debugging**: Chat with your AI: *"Debug this code and find the bug"*
 
 That's it! Your AI debugger is ready.
